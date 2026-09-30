@@ -25,6 +25,9 @@ automáticamente.
    y los movimientos que no matchearon con nada, para unirlos manualmente.
 4. **Dashboard** (`/dashboard`): totales de ingresos/egresos, % conciliado, y
    el historial de importaciones.
+5. **Agente de WhatsApp** (opcional, ver sección abajo): los dueños mandan una
+   foto del ticket/comprobante por WhatsApp y se carga solo como un gasto más,
+   comparado automáticamente contra las facturas de AFIP.
 
 ## ⚠️ Pendiente de ajustar: parser de resúmenes de tarjeta
 
@@ -89,6 +92,11 @@ git push -u origin main
      `openssl rand -base64 32` en cualquier terminal.
    - `APP_PASSWORD_HASH`: corré `npm run hash-password "la-contraseña-que-quieras"`
      en tu máquina y pegá el resultado (no la contraseña en texto plano).
+   - Si vas a usar el agente de WhatsApp (podés sumarlo después, no hace
+     falta ahora): `ANTHROPIC_API_KEY`, `WHATSAPP_ACCESS_TOKEN`,
+     `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`,
+     `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_ALLOWED_NUMBERS` — ver la sección
+     "Agente de WhatsApp para tickets" más abajo.
 3. Deploy.
 
 ### 4. Crear las tablas en la base de producción
@@ -103,6 +111,62 @@ DATABASE_URL="<la-connection-string-de-neon>" npm run db:push
 
 Abrí la URL que te dio Vercel, ingresá con la contraseña que elegiste en el
 paso 3, y ya está — desde ahí es "Importar" y subir los primeros archivos.
+
+## Agente de WhatsApp para tickets
+
+Los dueños mandan una foto del ticket/factura por WhatsApp y el sistema:
+1. Verifica que el número sea uno autorizado (lista blanca).
+2. Le pide a Claude que lea la foto y extraiga fecha, importe, comercio y CUIT.
+3. Si la lectura salió clara, carga el gasto como una transacción más (fuente
+   "Ticket (WhatsApp)") y corre la conciliación automática — si ya había una
+   factura de AFIP cargada con ese importe y fecha, quedan unidas solas.
+4. Si la foto está borrosa o falta un dato clave, no carga nada: le responde a
+   quien mandó el ticket pidiendo una foto más clara, en vez de meter datos
+   dudosos a la contabilidad.
+5. Si el ticket no tiene factura asociada después de 3 días, aparece contado
+   en el dashboard como "gastos sin factura" — para poder reclamarla a tiempo.
+
+No se guarda la foto en sí, solo los datos que se extrajeron de ella (se puede
+sumar más adelante si hace falta guardar el comprobante visual).
+
+### Setup (con tus cuentas — esto no lo puedo hacer yo)
+
+**1. API key de Anthropic** (para que el agente pueda "leer" las fotos):
+
+- Entrá a [console.anthropic.com](https://console.anthropic.com/settings/keys),
+  creá una API key y activá billing (el costo por ticket leído es mínimo,
+  centavos de dólar).
+- Esa key va en `ANTHROPIC_API_KEY`.
+
+**2. WhatsApp Cloud API de Meta** (es distinta de la app de WhatsApp Business
+que ya usás — esta es la API para que un programa mande/reciba mensajes):
+
+1. Entrá a [developers.facebook.com](https://developers.facebook.com/), creá
+   una cuenta de desarrollador si no tenés, y creá una App nueva (tipo
+   "Business").
+2. Dentro de la app, agregá el producto **WhatsApp**.
+3. En **WhatsApp → API Setup** vas a ver un número de prueba gratuito. Ahí
+   mismo podés agregar hasta 5 números de teléfono como destinatarios de
+   prueba — agregá los teléfonos de los dueños. Con esto alcanza para arrancar
+   sin pasar por la verificación de negocio de Meta (que lleva más tiempo).
+4. De esa misma pantalla copiá:
+   - El **token de acceso temporal** (o generá uno permanente en
+     **System Users**, dura más) → `WHATSAPP_ACCESS_TOKEN`.
+   - El **Phone number ID** → `WHATSAPP_PHONE_NUMBER_ID`.
+5. En **App Settings → Basic** copiá el **App Secret** → `WHATSAPP_APP_SECRET`.
+6. Inventá cualquier string como contraseña de verificación → eso va en
+   `WHATSAPP_VERIFY_TOKEN`, y lo vas a volver a pegar en el paso 8.
+7. Cargá los teléfonos de los dueños (formato internacional, sin "+", ej.
+   `5493411234567`) separados por coma en `WHATSAPP_ALLOWED_NUMBERS`.
+8. Una vez que el sistema esté deployado en Vercel (siguiente sección), volvé
+   a **WhatsApp → Configuration** en el panel de Meta y registrá el webhook:
+   - Callback URL: `https://<tu-dominio>.vercel.app/api/whatsapp/webhook`
+   - Verify token: el mismo string que pusiste en `WHATSAPP_VERIFY_TOKEN`.
+   - Suscribite al campo `messages`.
+
+Con todo eso cargado en Vercel (más abajo) y el webhook registrado, ya podés
+mandarle una foto de un ticket al número de prueba desde uno de los teléfonos
+autorizados.
 
 ## Nota sobre el tamaño de los PDF
 
@@ -121,10 +185,17 @@ importación de ese archivo va a fallar — avisame si pasa y lo resolvemos
 - `src/lib/matching/engine.ts` — el motor de conciliación, 3 estrategias en
   cascada (exacta 1-a-1, tarjeta 1-a-N, fuzzy).
 - `src/app/import`, `src/app/dashboard`, `src/app/review` — las 3 pantallas.
-- `src/proxy.ts` — protege todas las rutas salvo `/login` (Next.js 16 renombró
-  `middleware.ts` a `proxy.ts`).
+- `src/app/api/whatsapp/webhook/route.ts` — recibe los mensajes de WhatsApp.
+- `src/lib/whatsapp/` — cliente de la Graph API de Meta y verificación de
+  firma del webhook.
+- `src/lib/tickets/extract.ts` — llamada a Claude para leer la foto del
+  ticket.
+- `src/proxy.ts` — protege todas las rutas salvo `/login` y `/api/whatsapp`
+  (Next.js 16 renombró `middleware.ts` a `proxy.ts`).
 
 Próximos pasos naturales cuando esto esté rodando un tiempo: afinar el parser
-de tarjeta con PDFs reales, y más adelante reemplazar la exportación manual de
-AFIP por integración directa vía Web Services (requiere certificado digital),
-que es el último tramo hacia la automatización completa.
+de tarjeta con PDFs reales, subir el agente de WhatsApp a producción real (no
+solo el número de prueba de Meta, que tiene el límite de 5 destinatarios), y
+más adelante reemplazar la exportación manual de AFIP por integración directa
+vía Web Services (requiere certificado digital), que es el último tramo hacia
+la automatización completa.

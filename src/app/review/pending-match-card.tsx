@@ -12,6 +12,7 @@ const SOURCE_LABELS: Record<string, string> = {
   card: "Tarjeta",
   afip_issued: "AFIP emitida",
   afip_received: "AFIP recibida",
+  ticket: "Ticket (WhatsApp)",
 };
 
 type Match = typeof matches.$inferSelect;

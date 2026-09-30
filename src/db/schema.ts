@@ -20,6 +20,7 @@ export const sourceEnum = pgEnum("source", [
   "card",
   "afip_issued",
   "afip_received",
+  "ticket",
 ]);
 
 export const matchStatusEnum = pgEnum("match_status", [

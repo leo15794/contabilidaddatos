@@ -3,7 +3,10 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const COOKIE_NAME = "session";
-const PUBLIC_PATHS = ["/login"];
+// /api/whatsapp: pública porque Meta tiene que poder pegarle directo; se
+// protege con su propia verificación de firma + lista de números permitidos
+// (ver src/lib/whatsapp/verify.ts y src/lib/whatsapp/client.ts).
+const PUBLIC_PATHS = ["/login", "/api/whatsapp"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

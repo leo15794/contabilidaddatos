@@ -3,7 +3,7 @@ import { importBatches, transactions } from "@/db/schema";
 import { ParseResult } from "./parsers/types";
 import { runMatchingEngine } from "./matching/engine";
 
-export type ImportSource = "bank" | "card" | "afip_issued" | "afip_received";
+export type ImportSource = "bank" | "card" | "afip_issued" | "afip_received" | "ticket";
 
 export async function saveImport(
   source: ImportSource,

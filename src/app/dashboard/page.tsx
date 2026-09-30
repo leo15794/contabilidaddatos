@@ -12,6 +12,7 @@ const SOURCE_LABELS: Record<string, string> = {
   card: "Tarjeta",
   afip_issued: "AFIP emitidas",
   afip_received: "AFIP recibidas",
+  ticket: "Ticket (WhatsApp)",
 };
 
 export default async function DashboardPage() {
@@ -26,7 +27,7 @@ export default async function DashboardPage() {
           <ReconcileButton />
         </div>
 
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
           <Stat label="Ingresos" value={fmt.format(summary.ingresos)} tone="positive" />
           <Stat label="Egresos" value={fmt.format(summary.egresos)} tone="negative" />
           <Stat label="Conciliado" value={`${summary.conciliadoPct}%`} tone="neutral" />
@@ -34,6 +35,11 @@ export default async function DashboardPage() {
             label="Pendientes de revisar"
             value={String(summary.pendingReviewCount)}
             tone={summary.pendingReviewCount > 0 ? "warning" : "neutral"}
+          />
+          <Stat
+            label="Gastos (tickets) sin factura"
+            value={String(summary.ticketsSinFactura)}
+            tone={summary.ticketsSinFactura > 0 ? "warning" : "neutral"}
           />
         </div>
 
