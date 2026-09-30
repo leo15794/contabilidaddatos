@@ -3,10 +3,11 @@ import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const COOKIE_NAME = "session";
-// /api/whatsapp: pública porque Meta tiene que poder pegarle directo; se
-// protege con su propia verificación de firma + lista de números permitidos
-// (ver src/lib/whatsapp/verify.ts y src/lib/whatsapp/client.ts).
-const PUBLIC_PATHS = ["/login", "/api/whatsapp"];
+// /api/tickets/ingest: pública porque la llama OpenWA (el gateway de WhatsApp
+// self-hosted, corre aparte en un VPS), no un navegador con sesión — se
+// protege con la firma HMAC de OpenWA (OPENWA_WEBHOOK_SECRET), ver
+// src/app/api/tickets/ingest/route.ts.
+const PUBLIC_PATHS = ["/login", "/api/tickets/ingest"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

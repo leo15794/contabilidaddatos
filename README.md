@@ -93,10 +93,9 @@ git push -u origin main
    - `APP_PASSWORD_HASH`: corré `npm run hash-password "la-contraseña-que-quieras"`
      en tu máquina y pegá el resultado (no la contraseña en texto plano).
    - Si vas a usar el agente de WhatsApp (podés sumarlo después, no hace
-     falta ahora): `ANTHROPIC_API_KEY`, `WHATSAPP_ACCESS_TOKEN`,
-     `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`,
-     `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_ALLOWED_NUMBERS` — ver la sección
-     "Agente de WhatsApp para tickets" más abajo.
+     falta ahora): `ANTHROPIC_API_KEY`, `OPENWA_URL`, `OPENWA_API_KEY`,
+     `OPENWA_SESSION_ID`, `OPENWA_WEBHOOK_SECRET`, `WHATSAPP_ALLOWED_NUMBERS`
+     — ver la sección "Agente de WhatsApp para tickets" más abajo.
 3. Deploy.
 
 ### 4. Crear las tablas en la base de producción
@@ -129,6 +128,20 @@ Los dueños mandan una foto del ticket/factura por WhatsApp y el sistema:
 No se guarda la foto en sí, solo los datos que se extrajeron de ella (se puede
 sumar más adelante si hace falta guardar el comprobante visual).
 
+**Importante sobre este canal**: en vez de la WhatsApp Cloud API oficial de
+Meta (que exige migrar o vincular un número de negocio nuevo), este agente
+usa tu WhatsApp normal a través de **OpenWA**, un gateway self-hosted de
+código abierto que simula una sesión de WhatsApp Web. Esto significa que no
+hay que dar de alta nada con Meta, pero también que **viola los términos de
+servicio de WhatsApp** — el riesgo real es que el número quede bloqueado en
+algún momento, o que deje de andar si WhatsApp cambia algo internamente. Con
+el volumen de este caso (algunos tickets sueltos por día) el riesgo es bajo,
+y ya lo charlamos y lo aceptamos: no es algo que vaya a pasar por sorpresa.
+
+OpenWA necesita un proceso corriendo 24/7 (como WhatsApp Web, que no se puede
+cerrar) — no entra en Vercel, que es serverless. Por eso corre aparte, en un
+VPS barato.
+
 ### Setup (con tus cuentas — esto no lo puedo hacer yo)
 
 **1. API key de Anthropic** (para que el agente pueda "leer" las fotos):
@@ -138,35 +151,54 @@ sumar más adelante si hace falta guardar el comprobante visual).
   centavos de dólar).
 - Esa key va en `ANTHROPIC_API_KEY`.
 
-**2. WhatsApp Cloud API de Meta** (es distinta de la app de WhatsApp Business
-que ya usás — esta es la API para que un programa mande/reciba mensajes):
+**2. Un VPS barato para OpenWA:**
 
-1. Entrá a [developers.facebook.com](https://developers.facebook.com/), creá
-   una cuenta de desarrollador si no tenés, y creá una App nueva (tipo
-   "Business").
-2. Dentro de la app, agregá el producto **WhatsApp**.
-3. En **WhatsApp → API Setup** vas a ver un número de prueba gratuito. Ahí
-   mismo podés agregar hasta 5 números de teléfono como destinatarios de
-   prueba — agregá los teléfonos de los dueños. Con esto alcanza para arrancar
-   sin pasar por la verificación de negocio de Meta (que lleva más tiempo).
-4. De esa misma pantalla copiá:
-   - El **token de acceso temporal** (o generá uno permanente en
-     **System Users**, dura más) → `WHATSAPP_ACCESS_TOKEN`.
-   - El **Phone number ID** → `WHATSAPP_PHONE_NUMBER_ID`.
-5. En **App Settings → Basic** copiá el **App Secret** → `WHATSAPP_APP_SECRET`.
-6. Inventá cualquier string como contraseña de verificación → eso va en
-   `WHATSAPP_VERIFY_TOKEN`, y lo vas a volver a pegar en el paso 8.
-7. Cargá los teléfonos de los dueños (formato internacional, sin "+", ej.
-   `5493411234567`) separados por coma en `WHATSAPP_ALLOWED_NUMBERS`.
-8. Una vez que el sistema esté deployado en Vercel (siguiente sección), volvé
-   a **WhatsApp → Configuration** en el panel de Meta y registrá el webhook:
-   - Callback URL: `https://<tu-dominio>.vercel.app/api/whatsapp/webhook`
-   - Verify token: el mismo string que pusiste en `WHATSAPP_VERIFY_TOKEN`.
-   - Suscribite al campo `messages`.
+- Recomiendo [Hetzner](https://www.hetzner.com/cloud/) (plan CX22, 2GB RAM,
+  ~€4-5/mes) o un droplet de 2GB de [DigitalOcean](https://www.digitalocean.com/)
+  (~6 USD/mes). Con el motor `baileys` (liviano, ~30-80MB por sesión) y la
+  base de datos SQLite que trae OpenWA por defecto, un servidor de 2GB alcanza
+  sobrando — no hace falta nada más grande ni una base de datos aparte.
+- Instalá Docker en el VPS (en Ubuntu: `curl -fsSL https://get.docker.com | sh`).
 
-Con todo eso cargado en Vercel (más abajo) y el webhook registrado, ya podés
-mandarle una foto de un ticket al número de prueba desde uno de los teléfonos
-autorizados.
+**3. Levantar OpenWA:**
+
+1. Subí la carpeta `openwa/` de este repo al VPS (o cloná el repo entero ahí
+   y quedate solo con esa carpeta).
+2. Copiá `openwa/.env.example` a `openwa/.env` y descomentá
+   `ENGINE_TYPE=baileys`.
+3. Arrancalo:
+   ```bash
+   cd openwa
+   docker compose -f docker-compose.dev.yml up -d
+   ```
+4. En el primer arranque, OpenWA genera solo una API key de administrador:
+   mirala en el banner de arranque (`docker compose -f docker-compose.dev.yml logs`)
+   o leé el archivo `data/.api-key` dentro del contenedor. Esa es tu
+   `OPENWA_API_KEY` para Vercel.
+5. Entrá al dashboard (`http://<ip-del-vps>:2785`) con esa key, creá una
+   sesión, y escaneá el código QR con el WhatsApp que van a usar para mandar
+   los tickets (**WhatsApp → Dispositivos vinculados → Vincular un
+   dispositivo**). El nombre que le pongas a la sesión es tu
+   `OPENWA_SESSION_ID`.
+6. Desde el dashboard (o la API), creá un webhook para esa sesión:
+   - URL: `https://<tu-dominio>.vercel.app/api/tickets/ingest`
+   - Eventos: `message.received`
+   - Secret: cualquier string aleatorio largo (`openssl rand -hex 32`) — ese
+     mismo valor va en `OPENWA_WEBHOOK_SECRET` en Vercel.
+
+**4. Completar las variables en Vercel:**
+
+- `OPENWA_URL`: la URL pública de tu VPS (`http://<ip>:2785`, o mejor un
+  dominio con HTTPS si le ponés un proxy tipo Caddy/Nginx delante).
+- `OPENWA_API_KEY`: la API key del paso 3.4.
+- `OPENWA_SESSION_ID`: el nombre de la sesión del paso 3.5.
+- `OPENWA_WEBHOOK_SECRET`: el secret del webhook del paso 3.6.
+- `WHATSAPP_ALLOWED_NUMBERS`: teléfonos de los dueños autorizados a mandar
+  tickets, separados por coma, en formato internacional sin "+" (ej.
+  `5493411234567,5493413456789`).
+
+Con todo eso cargado, ya podés mandarle una foto de un ticket al WhatsApp
+vinculado desde uno de los teléfonos autorizados.
 
 ## Nota sobre el tamaño de los PDF
 
