@@ -3,47 +3,49 @@
 import { useActionState } from "react";
 import { importCardAction, ImportActionState } from "./actions";
 import { ImportFeedback } from "./import-feedback";
+import { Button } from "@/components/ui";
+import { IconUpload } from "@/components/icons";
 
 const initial: ImportActionState = {};
+
+const inputClass =
+  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
 
 export function CardImportForm() {
   const [state, formAction, pending] = useActionState(importCardAction, initial);
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction} className="space-y-3.5">
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-700">Tarjeta</label>
-        <input
-          type="text"
-          name="accountRef"
-          placeholder="Ej: Visa Santander"
-          required
-          className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-        />
+        <label className="mb-1.5 block text-xs font-medium text-slate-700">Tarjeta</label>
+        <input type="text" name="accountRef" placeholder="Ej: Visa Santander" required className={inputClass} />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-700">Año del resumen</label>
+        <label className="mb-1.5 block text-xs font-medium text-slate-700">Año del resumen</label>
         <input
           type="number"
           name="statementYear"
           placeholder={String(new Date().getFullYear())}
-          className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
+          className={inputClass}
         />
-        <p className="mt-0.5 text-[11px] text-slate-400">
+        <p className="mt-1 text-[11px] text-slate-400">
           Solo hace falta si el PDF no incluye el año en las fechas.
         </p>
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-700">Archivo PDF</label>
-        <input type="file" name="file" accept=".pdf,application/pdf" required className="w-full text-sm" />
+        <label className="mb-1.5 block text-xs font-medium text-slate-700">Archivo PDF</label>
+        <input
+          type="file"
+          name="file"
+          accept=".pdf,application/pdf"
+          required
+          className="w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+        />
       </div>
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pending} className="w-full">
+        <IconUpload width={14} height={14} />
         {pending ? "Importando..." : "Importar"}
-      </button>
+      </Button>
       <ImportFeedback state={state} />
     </form>
   );

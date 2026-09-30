@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { reconcileAction } from "./actions";
+import { Button } from "@/components/ui";
+import { IconSparkles } from "@/components/icons";
 
 export function ReconcileButton() {
   const [pending, startTransition] = useTransition();
@@ -10,7 +12,7 @@ export function ReconcileButton() {
   return (
     <div className="flex items-center gap-3">
       {message && <span className="text-xs text-slate-500">{message}</span>}
-      <button
+      <Button
         onClick={() =>
           startTransition(async () => {
             const result = await reconcileAction();
@@ -20,10 +22,10 @@ export function ReconcileButton() {
           })
         }
         disabled={pending}
-        className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
       >
+        <IconSparkles width={15} height={15} />
         {pending ? "Conciliando..." : "Re-conciliar"}
-      </button>
+      </Button>
     </div>
   );
 }

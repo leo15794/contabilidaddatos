@@ -4,10 +4,15 @@ import { useActionState, useState } from "react";
 import Papa from "papaparse";
 import { importBankAction, ImportActionState } from "./actions";
 import { ImportFeedback } from "./import-feedback";
+import { Button } from "@/components/ui";
+import { IconUpload } from "@/components/icons";
 
 const initial: ImportActionState = {};
 
 type Mode = "single" | "debit-credit";
+
+const inputClass =
+  "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100";
 
 export function BankImportForm() {
   const [state, formAction, pending] = useActionState(importBankAction, initial);
@@ -38,31 +43,25 @@ export function BankImportForm() {
       : { dateColumn, descriptionColumn, debitColumn, creditColumn };
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction} className="space-y-3.5">
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-700">Cuenta / banco</label>
-        <input
-          type="text"
-          name="accountRef"
-          placeholder="Ej: Banco Galicia CC"
-          required
-          className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm"
-        />
+        <label className="mb-1.5 block text-xs font-medium text-slate-700">Cuenta / banco</label>
+        <input type="text" name="accountRef" placeholder="Ej: Banco Galicia CC" required className={inputClass} />
       </div>
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-700">Archivo CSV</label>
+        <label className="mb-1.5 block text-xs font-medium text-slate-700">Archivo CSV</label>
         <input
           type="file"
           name="file"
           accept=".csv,text/csv"
           required
           onChange={handleFile}
-          className="w-full text-sm"
+          className="w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
         />
       </div>
 
       {headers.length > 0 && (
-        <div className="space-y-2 rounded-md bg-slate-50 p-2">
+        <div className="space-y-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3">
           <p className="text-xs font-medium text-slate-700">Mapeo de columnas</p>
           <ColumnSelect label="Fecha" value={dateColumn} onChange={setDateColumn} headers={headers} />
           <ColumnSelect
@@ -71,20 +70,22 @@ export function BankImportForm() {
             onChange={setDescriptionColumn}
             headers={headers}
           />
-          <div className="flex gap-2 text-xs">
-            <label className="flex items-center gap-1">
+          <div className="flex gap-3 text-xs text-slate-600">
+            <label className="flex items-center gap-1.5">
               <input
                 type="radio"
                 checked={mode === "single"}
                 onChange={() => setMode("single")}
+                className="accent-indigo-600"
               />
               Una columna de importe
             </label>
-            <label className="flex items-center gap-1">
+            <label className="flex items-center gap-1.5">
               <input
                 type="radio"
                 checked={mode === "debit-credit"}
                 onChange={() => setMode("debit-credit")}
+                className="accent-indigo-600"
               />
               Débito/Crédito separados
             </label>
@@ -102,13 +103,10 @@ export function BankImportForm() {
 
       <input type="hidden" name="mapping" value={JSON.stringify(mapping)} />
 
-      <button
-        type="submit"
-        disabled={pending || headers.length === 0}
-        className="w-full rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pending || headers.length === 0} className="w-full">
+        <IconUpload width={14} height={14} />
         {pending ? "Importando..." : "Importar"}
-      </button>
+      </Button>
       <ImportFeedback state={state} />
     </form>
   );
@@ -131,7 +129,7 @@ function ColumnSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="rounded border border-slate-300 px-1 py-0.5"
+        className="rounded-md border border-slate-300 px-1.5 py-1 text-xs outline-none focus:border-indigo-500"
       >
         <option value="">-- elegir --</option>
         {headers.map((h) => (
