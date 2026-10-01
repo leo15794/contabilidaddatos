@@ -107,10 +107,16 @@ export async function parseCardStatementWithVision(
   const model = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
   let raw: string;
+  let truncated = false;
   try {
+    // 8192 tokens de salida se quedaban cortos con resúmenes grandes (4
+    // socios, muchos consumos cada uno) — el JSON se cortaba a la mitad y
+    // tiraba "no era JSON válido" sin explicar por qué. Sonnet 5 soporta
+    // mucho más de salida, así que se sube el límite bien arriba para que
+    // deje de ser el cuello de botella.
     const response = await client.messages.create({
       model,
-      max_tokens: 8192,
+      max_tokens: 32000,
       messages: [
         {
           role: "user",
@@ -128,6 +134,7 @@ export async function parseCardStatementWithVision(
         },
       ],
     });
+    truncated = response.stop_reason === "max_tokens";
     const textBlock = response.content.find((b) => b.type === "text");
     raw = textBlock && "text" in textBlock ? textBlock.text : "";
   } catch (err) {
@@ -140,11 +147,15 @@ export async function parseCardStatementWithVision(
     };
   }
 
+  const truncNote = truncated
+    ? " La respuesta se cortó por límite de tokens de salida — probá subir el PDF de nuevo solo, o avisame si vuelve a pasar."
+    : "";
+
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     return {
       rows: [],
-      warnings: ["No se pudo interpretar la respuesta del modelo al leer el PDF."],
+      warnings: [`No se pudo interpretar la respuesta del modelo al leer el PDF.${truncNote}`],
       extraction: null,
       needsReview: true,
       reviewNotes: [],
@@ -157,7 +168,7 @@ export async function parseCardStatementWithVision(
   } catch {
     return {
       rows: [],
-      warnings: ["La respuesta del modelo no era JSON válido."],
+      warnings: [`La respuesta del modelo no era JSON válido.${truncNote}`],
       extraction: null,
       needsReview: true,
       reviewNotes: [],
@@ -207,7 +218,7 @@ export async function parseCardStatementWithVision(
   for (const cargo of extraction.cargosVarios ?? []) {
     rows.push({
       date: parseArDate(normalizeFecha(extraction.cierre ?? "")) ?? new Date(),
-      description: cargo.descripcion,
+      descripcion: cargo.descripcion,
       amount: -Math.abs(cargo.importe),
       currency: "ARS",
       counterparty: "Banco (cargo del resumen)",
