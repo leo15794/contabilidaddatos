@@ -3,8 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { parseAfipCsv } from "@/lib/parsers/afip-csv";
 import { parseBankCsv, BankColumnMapping } from "@/lib/parsers/bank-csv";
-import { parseCardPdf } from "@/lib/parsers/card-pdf";
 import { saveImportAndReconcile } from "@/lib/import";
+
+// `card-pdf.ts` carga pdf-parse -> pdfjs-dist, que al evaluarse referencia
+// `DOMMatrix` (un global de browser que no existe en el runtime Node de
+// Vercel). Si se importa en el tope del archivo, ese `ReferenceError` revienta
+// TODA acción de este módulo (bank y AFIP incluidas), no solo la de tarjeta.
+// Se importa dinámicamente, solo dentro de importCardAction, para que ese
+// problema quede aislado a la importación de tarjeta (que ya es best-effort).
 
 export type ImportActionState = {
   error?: string;
@@ -98,6 +104,7 @@ export async function importCardAction(
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const statementYear = yearRaw ? Number(yearRaw) : undefined;
+  const { parseCardPdf } = await import("@/lib/parsers/card-pdf");
   const parsed = await parseCardPdf(buffer, statementYear);
 
   if (parsed.rows.length === 0) {
