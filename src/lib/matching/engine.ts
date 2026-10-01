@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 import { jaccardSimilarity } from "./text-similarity";
+import { isNonReconcilableBankMovement } from "./exclusions";
 
 export type EngineOptions = {
   /** Ventana de días para considerar dos movimientos "cercanos" en fecha. */
@@ -219,7 +220,14 @@ async function runFuzzySuggestions(pool: Txn[], opts: Required<EngineOptions>) {
 
 export async function runMatchingEngine(options: EngineOptions = {}) {
   const opts = { ...DEFAULTS, ...options };
-  const pool0 = await getUnmatchedTransactions();
+  // Movimientos bancarios "internos" (impuestos, comisiones, transferencias
+  // entre cuentas propias) nunca deberían conciliar contra una factura o
+  // ticket — no son pagos a/de terceros. Se sacan del pool antes de correr
+  // cualquiera de las 3 estrategias, así ni se auto-confirman ni aparecen
+  // como sugerencia para revisar.
+  const pool0 = (await getUnmatchedTransactions()).filter(
+    (t) => !isNonReconcilableBankMovement(t),
+  );
 
   const step1 = await runExact1to1(pool0, opts);
   const step2 = await runCardStatementMatch(step1.remaining, opts);
