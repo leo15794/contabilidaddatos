@@ -1,5 +1,12 @@
 "use server";
 
+// Leer un resumen de tarjeta con Claude (y mas si se suben varios PDF juntos)
+// puede tardar bien mas que los 10s que Vercel usa de limite por default en
+// las funciones. Sin esto, la conexion se corta a mitad de camino y el
+// navegador muestra "la pagina no pudo cargar" aunque el server siga
+// procesando. 60s es el maximo permitido en el plan Hobby.
+export const maxDuration = 60;
+
 import { revalidatePath } from "next/cache";
 import { parseAfipCsv } from "@/lib/parsers/afip-csv";
 import { parseBankCsv, BankColumnMapping } from "@/lib/parsers/bank-csv";
