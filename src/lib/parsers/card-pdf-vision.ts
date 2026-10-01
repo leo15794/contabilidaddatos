@@ -114,26 +114,37 @@ export async function parseCardStatementWithVision(
     // tiraba "no era JSON válido" sin explicar por qué. Sonnet 5 soporta
     // mucho más de salida, así que se sube el límite bien arriba para que
     // deje de ser el cuello de botella.
-    const response = await client.messages.create({
-      model,
-      max_tokens: 32000,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "document",
-              source: {
-                type: "base64",
-                media_type: "application/pdf",
-                data: fileBuffer.toString("base64"),
+    // "fallo inesperado / unexpected response from server" en producción era
+    // la función de Vercel cortada en seco a los 60s (límite duro del plan
+    // Hobby) mientras el SDK todavía esperaba/reintentaba la respuesta de
+    // Anthropic — eso deja el request a medio cerrar y el navegador no sabe
+    // interpretarlo. Con un timeout propio más corto (45s) y sin reintentos
+    // automáticos del SDK, si la llamada se cuelga fallamos ANTES de que
+    // Vercel mate la función, y el catch de abajo devuelve un aviso
+    // entendible en vez de romper el request.
+    const response = await client.messages.create(
+      {
+        model,
+        max_tokens: 32000,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "document",
+                source: {
+                  type: "base64",
+                  media_type: "application/pdf",
+                  data: fileBuffer.toString("base64"),
+                },
               },
-            },
-            { type: "text", text: PROMPT },
-          ],
-        },
-      ],
-    });
+              { type: "text", text: PROMPT },
+            ],
+          },
+        ],
+      },
+      { timeout: 45_000, maxRetries: 1 },
+    );
     truncated = response.stop_reason === "max_tokens";
     const textBlock = response.content.find((b) => b.type === "text");
     raw = textBlock && "text" in textBlock ? textBlock.text : "";
