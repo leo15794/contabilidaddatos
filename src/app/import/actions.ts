@@ -108,6 +108,43 @@ async function importOneCardFile(
 ): Promise<{ ok: true; summary: string; warnings: string[] } | { ok: false; error: string; warnings?: string[] }> {
   const buffer = Buffer.from(await file.arrayBuffer());
 
+  // Planilla Excel cargada a mano (ver `card-xlsx.ts`) — para los resúmenes
+  // que ni el lector por texto ni Claude pueden leer a tiempo. No pasa por
+  // ninguna API externa, así que va directo, sin el resto del pipeline.
+  if (/\.xlsx?$/i.test(file.name)) {
+    const { parseCardStatementXlsx } = await import("@/lib/parsers/card-xlsx");
+    const xlsx = parseCardStatementXlsx(buffer);
+
+    if (xlsx.rows.length === 0) {
+      return {
+        ok: false,
+        error: `"${file.name}": no se pudo leer ningún consumo de la planilla.`,
+        warnings: xlsx.warnings,
+      };
+    }
+
+    for (const row of xlsx.rows) {
+      const raw = row.raw as { cardholder?: string; cardNumber?: string };
+      if (raw.cardholder && raw.cardNumber) {
+        row.accountRef = accountRefForCardholder(accountRef, raw.cardholder, raw.cardNumber);
+      }
+    }
+
+    const saved = await saveImportAndReconcile("card", file.name, accountRef, xlsx, {
+      cargadoDesdeExcel: true,
+    });
+
+    const reviewNote = xlsx.needsReview
+      ? ` ⚠️ Revisar: ${xlsx.reviewNotes.join(" ")}`
+      : " Los subtotales de cada tarjeta cerraron exacto contra lo cargado.";
+
+    return {
+      ok: true,
+      summary: `"${file.name}": ${saved.rowCount} consumos de "${accountRef}" (cargado desde Excel). ${saved.reconcile.cardStatementMatches} matches automáticos.${reviewNote}`,
+      warnings: xlsx.warnings,
+    };
+  }
+
   // Primero el parser por texto (rápido, sin costo de API) — sirve para
   // resúmenes que sí traen texto seleccionable adentro del PDF.
   // pdf-parse (vía pdfjs-dist) puede tirar una excepción en vez de

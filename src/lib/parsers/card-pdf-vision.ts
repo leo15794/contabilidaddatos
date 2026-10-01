@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { ParseResult, ParsedRow, parseArDate } from "./types";
+import { ParseResult } from "./types";
+import { StatementExtraction, buildRowsFromExtraction } from "./card-statement-shared";
 
 /**
  * Parser de resúmenes de tarjeta que NO tienen texto adentro (son una imagen
@@ -20,31 +21,15 @@ import { ParseResult, ParsedRow, parseArDate } from "./types";
  * los consumos que Claude extrajo por tarjeta y se comparan contra el
  * subtotal impreso. Si no cierran exacto, esa tarjeta se marca para revisar
  * en vez de darla por buena en silencio.
+ *
+ * LIMITACIÓN CONOCIDA: Vercel Hobby mata cualquier función a los 60s, y
+ * algunos resúmenes (no necesariamente los más "pesados") le toman a Claude
+ * más de ese tiempo en leerse — no hay margen para subir el timeout mucho
+ * más sin arriesgarse a que Vercel corte la función a mitad de camino. Para
+ * esos casos existe `card-xlsx.ts`: una planilla con los mismos datos,
+ * cargada a mano (o tipeada por Claude en el chat mirando el PDF), que entra
+ * por un camino sin límite de tiempo porque no depende de ninguna API.
  */
-
-export type CardholderExtraction = {
-  cardNumber: string;
-  name: string;
-  subtotalImpreso: number;
-  consumos: {
-    fecha: string; // "DD Mes AA" tal como viene en el resumen
-    comprobante: string;
-    descripcion: string;
-    cuotas: string | null; // ej "3/6" o null si no es en cuotas
-    importe: number;
-  }[];
-};
-
-export type StatementExtraction = {
-  emisor: string | null;
-  cierre: string | null;
-  vencimiento: string | null;
-  saldoAnterior: number | null;
-  saldoActual: number | null;
-  pagoMinimo: number | null;
-  cargosVarios: { descripcion: string; importe: number }[]; // impuestos, comisiones, IVA del resumen
-  cardholders: CardholderExtraction[];
-};
 
 const PROMPT = `Sos un asistente que lee resúmenes de tarjeta de crédito argentinos (Banco Macro, formato "Visa Business"/"Negocios XXI") a partir de la imagen del PDF.
 
@@ -153,6 +138,12 @@ export async function parseCardStatementWithVision(
       // margen para el resto de la función (parsear, guardar en la base)
       // antes de que Vercel mate todo a los 60s — es el margen más grande
       // que se puede dar sin arriesgarse a pisar el límite duro del plan.
+      //
+      // Aun así, para ALGUNOS resúmenes la llamada a Claude tarda más de
+      // 56s consistentemente (lo confirman los logs de Vercel: la función
+      // corta justo ahí, no antes) — no es cuestión de margen, Vercel
+      // simplemente no da más de 60s en el plan Hobby. Para esos casos no
+      // hay timeout que alcance: la solución es `card-xlsx.ts`.
       { timeout: 56_000, maxRetries: 0 },
     );
     truncated = response.stop_reason === "max_tokens";
@@ -203,73 +194,6 @@ export async function parseCardStatementWithVision(
     };
   }
 
-  const warnings: string[] = [];
-  const reviewNotes: string[] = [];
-  let needsReview = false;
-  const rows: ParsedRow[] = [];
-
-  for (const ch of extraction.cardholders ?? []) {
-    const sum = ch.consumos.reduce((acc, c) => acc + c.importe, 0);
-    const diff = Math.abs(sum - ch.subtotalImpreso);
-    const checksumOk = diff < 1;
-    if (!checksumOk) {
-      needsReview = true;
-      reviewNotes.push(
-        `Tarjeta ${ch.cardNumber} (${ch.name}): la suma de los consumos extraídos ($${sum.toFixed(2)}) no coincide con el subtotal impreso ($${ch.subtotalImpreso.toFixed(2)}, diferencia $${diff.toFixed(2)}) — revisar a mano contra el PDF.`,
-      );
-    }
-
-    for (const c of ch.consumos) {
-      const date = parseArDate(normalizeFecha(c.fecha));
-      if (!date) {
-        warnings.push(`Fecha no interpretada en consumo de ${ch.name}: "${c.fecha}" (${c.descripcion}) — se omite.`);
-        continue;
-      }
-      rows.push({
-        date,
-        description: c.descripcion,
-        amount: -Math.abs(c.importe),
-        currency: "ARS",
-        counterparty: c.descripcion,
-        raw: {
-          cardNumber: ch.cardNumber,
-          cardholder: ch.name,
-          comprobante: c.comprobante,
-          cuotas: c.cuotas,
-          checksumOk,
-          subtotalImpreso: ch.subtotalImpreso,
-        },
-      });
-    }
-  }
-
-  for (const cargo of extraction.cargosVarios ?? []) {
-    rows.push({
-      date: parseArDate(normalizeFecha(extraction.cierre ?? "")) ?? new Date(),
-      description: cargo.descripcion,
-      amount: -Math.abs(cargo.importe),
-      currency: "ARS",
-      counterparty: "Banco (cargo del resumen)",
-      raw: { cargoDelResumen: true, descripcion: cargo.descripcion },
-    });
-  }
-
+  const { rows, warnings, needsReview, reviewNotes } = buildRowsFromExtraction(extraction);
   return { rows, warnings, extraction, needsReview, reviewNotes };
-}
-
-// "27 Marzo 26" -> "27/03/2026" (parseArDate ya sabe parsear dd/mm/yyyy)
-const MESES: Record<string, string> = {
-  enero: "01", febrero: "02", marzo: "03", abril: "04", mayo: "05", junio: "06",
-  julio: "07", agosto: "08", septiembre: "09", setiembre: "09", octubre: "10",
-  noviembre: "11", diciembre: "12",
-};
-
-function normalizeFecha(fecha: string): string {
-  const m = fecha.trim().toLowerCase().match(/^(\d{1,2})\s+([a-záéíóú]+)\.?\s+(\d{2,4})$/);
-  if (!m) return fecha;
-  const [, day, mesRaw, yearRaw] = m;
-  const mes = MESES[mesRaw] ?? MESES[mesRaw.slice(0, 3)];
-  if (!mes) return fecha;
-  const year = yearRaw.length === 2 ? `20${yearRaw}` : yearRaw;
-  return `${day.padStart(2, "0")}/${mes}/${year}`;
 }
