@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { parseAfipCsv } from "@/lib/parsers/afip-csv";
 import { parseBankCsv, BankColumnMapping } from "@/lib/parsers/bank-csv";
-import { saveImportAndReconcile } from "@/lib/import";
+import { saveImportAndReconcile, findDuplicateCardStatement } from "@/lib/import";
+import { ParsedRow } from "@/lib/parsers/types";
 
 // `card-pdf.ts` carga pdf-parse -> pdfjs-dist, que al evaluarse referencia
 // `DOMMatrix` (un global de browser que no existe en el runtime Node de
@@ -101,6 +102,25 @@ function accountRefForCardholder(base: string, cardholderName: string, cardNumbe
   return `${base} · ${cardholderName} (${cardNumber})`;
 }
 
+// Fecha del resumen, para detectar el mismo resumen subido dos veces (ver
+// `findDuplicateCardStatement` en `src/lib/import.ts`). En vez de confiar en
+// el campo "cierre" que reporta cada parser (no todos lo llenan igual, y en
+// el de Excel se deriva de forma un poco frágil), se usa la fecha más
+// tardía entre TODAS las filas ya parseadas — funciona igual para los tres
+// parsers (texto, visión, Excel) sin que tengan que coincidir en formato.
+function latestRowDate(rows: ParsedRow[]): Date | null {
+  if (rows.length === 0) return null;
+  return new Date(Math.max(...rows.map((r) => r.date.getTime())));
+}
+
+function duplicateCardStatementError(
+  filename: string,
+  dup: { filename: string; importedAt: Date },
+): string {
+  const fecha = dup.importedAt.toLocaleDateString("es-AR");
+  return `"${filename}": este resumen ya estaba cargado como "${dup.filename}" (subido el ${fecha}) — mismo titular y misma fecha de resumen. No se importó de nuevo para evitar duplicar los consumos. Si en realidad son resúmenes distintos, avisame.`;
+}
+
 async function importOneCardFile(
   file: File,
   accountRef: string,
@@ -130,9 +150,20 @@ async function importOneCardFile(
       }
     }
 
-    const saved = await saveImportAndReconcile("card", file.name, accountRef, xlsx, {
-      cargadoDesdeExcel: true,
-    });
+    const statementDate = latestRowDate(xlsx.rows);
+    const dup = await findDuplicateCardStatement(accountRef, statementDate);
+    if (dup) {
+      return { ok: false, error: duplicateCardStatementError(file.name, dup), warnings: xlsx.warnings };
+    }
+
+    const saved = await saveImportAndReconcile(
+      "card",
+      file.name,
+      accountRef,
+      xlsx,
+      { cargadoDesdeExcel: true },
+      statementDate,
+    );
 
     const reviewNote = xlsx.needsReview
       ? ` ⚠️ Revisar: ${xlsx.reviewNotes.join(" ")}`
@@ -164,10 +195,20 @@ async function importOneCardFile(
   }
 
   if (textParsed && textParsed.rows.length > 0) {
-    const saved = await saveImportAndReconcile("card", file.name, accountRef, textParsed, {
-      issuer: textParsed.issuer,
-      closingBalance: textParsed.closingBalance,
-    });
+    const statementDate = latestRowDate(textParsed.rows);
+    const dup = await findDuplicateCardStatement(accountRef, statementDate);
+    if (dup) {
+      return { ok: false, error: duplicateCardStatementError(file.name, dup), warnings: textParsed.warnings };
+    }
+
+    const saved = await saveImportAndReconcile(
+      "card",
+      file.name,
+      accountRef,
+      textParsed,
+      { issuer: textParsed.issuer, closingBalance: textParsed.closingBalance },
+      statementDate,
+    );
     return {
       ok: true,
       summary: `"${file.name}": ${saved.rowCount} consumos de "${accountRef}" (leído por texto). ${saved.reconcile.cardStatementMatches} matches automáticos contra el banco.`,
@@ -197,12 +238,29 @@ async function importOneCardFile(
     }
   }
 
-  const saved = await saveImportAndReconcile("card", file.name, accountRef, vision, {
-    emisor: vision.extraction?.emisor ?? null,
-    cierre: vision.extraction?.cierre ?? null,
-    saldoActual: vision.extraction?.saldoActual ?? null,
-    leidoConVision: true,
-  });
+  const statementDate = latestRowDate(vision.rows);
+  const dup = await findDuplicateCardStatement(accountRef, statementDate);
+  if (dup) {
+    return {
+      ok: false,
+      error: duplicateCardStatementError(file.name, dup),
+      warnings: [...textWarnings, ...(textParsed?.warnings ?? []), ...vision.warnings],
+    };
+  }
+
+  const saved = await saveImportAndReconcile(
+    "card",
+    file.name,
+    accountRef,
+    vision,
+    {
+      emisor: vision.extraction?.emisor ?? null,
+      cierre: vision.extraction?.cierre ?? null,
+      saldoActual: vision.extraction?.saldoActual ?? null,
+      leidoConVision: true,
+    },
+    statementDate,
+  );
 
   const reviewNote = vision.needsReview
     ? ` ⚠️ Revisar: ${vision.reviewNotes.join(" ")}`

@@ -1,3 +1,4 @@
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, transactions } from "@/db/schema";
 import { ParseResult } from "./parsers/types";
@@ -5,12 +6,51 @@ import { runMatchingEngine } from "./matching/engine";
 
 export type ImportSource = "bank" | "card" | "afip_issued" | "afip_received" | "ticket";
 
+export type DuplicateImportInfo = {
+  batchId: number;
+  filename: string;
+  importedAt: Date;
+};
+
+/**
+ * Busca si ya existe un resumen de tarjeta cargado para la misma cuenta y la
+ * misma fecha de resumen (no de carga). Existe porque un mismo resumen puede
+ * subirse dos veces con nombres de archivo distintos sin que se note a
+ * simple vista (pasó de verdad: "descarga.pdf" y "descarga (2).pdf" eran el
+ * mismo resumen) — el nombre del archivo solo no alcanza para detectarlo.
+ */
+export async function findDuplicateCardStatement(
+  accountRef: string | null,
+  statementDate: Date | null,
+): Promise<DuplicateImportInfo | null> {
+  if (!accountRef || !statementDate) return null;
+
+  const existing = await db
+    .select({
+      batchId: importBatches.id,
+      filename: importBatches.filename,
+      importedAt: importBatches.importedAt,
+    })
+    .from(importBatches)
+    .where(
+      and(
+        eq(importBatches.source, "card"),
+        eq(importBatches.accountRef, accountRef),
+        eq(importBatches.statementDate, statementDate),
+      ),
+    )
+    .limit(1);
+
+  return existing[0] ?? null;
+}
+
 export async function saveImport(
   source: ImportSource,
   filename: string,
   accountRef: string | null,
   result: ParseResult,
   columnMapping?: Record<string, unknown>,
+  statementDate?: Date | null,
 ) {
   const [batch] = await db
     .insert(importBatches)
@@ -20,6 +60,7 @@ export async function saveImport(
       accountRef: accountRef || null,
       rowCount: result.rows.length,
       columnMapping: columnMapping ?? null,
+      statementDate: statementDate ?? null,
     })
     .returning({ id: importBatches.id });
 
@@ -49,8 +90,9 @@ export async function saveImportAndReconcile(
   accountRef: string | null,
   result: ParseResult,
   columnMapping?: Record<string, unknown>,
+  statementDate?: Date | null,
 ) {
-  const saved = await saveImport(source, filename, accountRef, result, columnMapping);
+  const saved = await saveImport(source, filename, accountRef, result, columnMapping, statementDate);
   const reconcile = await runMatchingEngine();
   return { ...saved, reconcile };
 }

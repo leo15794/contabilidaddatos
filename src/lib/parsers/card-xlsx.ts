@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
-import { ParseResult } from "./types";
-import { StatementExtraction, CardholderExtraction, buildRowsFromExtraction } from "./card-statement-shared";
+import { ParseResult, parseArDate } from "./types";
+import { StatementExtraction, CardholderExtraction, buildRowsFromExtraction, normalizeFecha } from "./card-statement-shared";
 
 /**
  * Carga a mano de un resumen de tarjeta vía planilla Excel, para los casos
@@ -96,7 +96,13 @@ export function parseCardStatementXlsx(
   const warnings: string[] = [];
   const cardholderMap = new Map<string, CardholderExtraction>();
   const cargosVarios: { descripcion: string; importe: number }[] = [];
-  let lastFecha = "";
+  // Fecha de cierre del resumen: se toma la MÁXIMA fecha entre todos los
+  // consumos (no la última fila del archivo — una planilla no tiene por qué
+  // estar ordenada cronológicamente, y "última fila" daba una fecha
+  // incorrecta en la práctica). Importa para fechar las filas "cargo" y
+  // porque de esto depende detectar el mismo resumen subido dos veces (ver
+  // `findDuplicateCardStatement` en `src/lib/import.ts`).
+  const maxFecha: { value: { raw: string; date: Date } | null } = { value: null };
 
   rows.forEach((r, i) => {
     const tipo = normalizeHeader(toText(r["tipo"]) || "consumo");
@@ -123,7 +129,12 @@ export function parseCardStatementXlsx(
       warnings.push(`Fila ${i + 2}: falta fecha, descripción o importe, se omite.`);
       return;
     }
-    if (fecha) lastFecha = fecha;
+    if (fecha) {
+      const parsed = parseArDate(normalizeFecha(fecha));
+      if (parsed && (!maxFecha.value || parsed.getTime() > maxFecha.value.date.getTime())) {
+        maxFecha.value = { raw: fecha, date: parsed };
+      }
+    }
 
     const key = `${cardNumber}|${name}`;
     let ch = cardholderMap.get(key);
@@ -157,7 +168,7 @@ export function parseCardStatementXlsx(
 
   const extraction: StatementExtraction = {
     emisor: null,
-    cierre: lastFecha || null,
+    cierre: maxFecha.value ? maxFecha.value.raw : null,
     vencimiento: null,
     saldoAnterior: null,
     saldoActual: null,

@@ -54,6 +54,11 @@ export const importBatches = pgTable("import_batches", {
   rowCount: integer("row_count").notNull().default(0),
   // mapeo de columnas usado (relevante para bank-csv, para poder re-aplicarlo)
   columnMapping: jsonb("column_mapping"),
+  // Fecha del resumen/extracto en sí (no de carga) — hoy solo se completa para
+  // resúmenes de tarjeta, calculada como la fecha más tardía entre sus filas.
+  // Sirve para detectar el mismo resumen subido dos veces con nombres de
+  // archivo distintos (ver `findDuplicateCardStatement` en `src/lib/import.ts`).
+  statementDate: timestamp("statement_date", { withTimezone: false }),
 });
 
 /** Cada movimiento normalizado, sin importar la fuente */
