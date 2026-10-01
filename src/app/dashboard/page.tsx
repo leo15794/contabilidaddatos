@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { NavBar } from "@/components/nav-bar";
 import { getDashboardSummary } from "@/lib/queries";
 import { ReconcileButton } from "./reconcile-button";
@@ -33,8 +34,17 @@ export default async function DashboardPage({
 
   // Fechas en los inputs vienen como "yyyy-mm-dd" (hora local). "to" se lleva
   // hasta el final del día para que incluya todo ese día.
-  const from = fromStr ? new Date(`${fromStr}T00:00:00`) : undefined;
-  const to = toStr ? new Date(`${toStr}T23:59:59.999`) : undefined;
+  let from = fromStr ? new Date(`${fromStr}T00:00:00`) : undefined;
+  let to = toStr ? new Date(`${toStr}T23:59:59.999`) : undefined;
+  // Si por error "desde" quedó después de "hasta" (ej: año mal tipeado), se
+  // reordenan en vez de devolver siempre cero resultados en silencio.
+  const datesSwapped = Boolean(from && to && from > to);
+  if (datesSwapped) {
+    const fromDay = fromStr!;
+    const toDay = toStr!;
+    from = new Date(`${toDay}T00:00:00`);
+    to = new Date(`${fromDay}T23:59:59.999`);
+  }
   const hasFilter = Boolean(from || to);
 
   const summary = await getDashboardSummary({ from, to });
@@ -89,10 +99,15 @@ export default async function DashboardPage({
 
         {hasFilter && (
           <p className="-mt-3 mb-6 text-xs text-slate-500">
-            Mostrando movimientos {from ? `desde ${fromStr}` : ""}
+            {datesSwapped && (
+              <span className="mr-1 font-medium text-amber-600">
+                "Desde" estaba después de "Hasta", así que se invirtieron solos —
+              </span>
+            )}
+            Mostrando movimientos {from ? `desde ${from.toLocaleDateString("es-AR")}` : ""}
             {from && to ? " " : ""}
-            {to ? `hasta ${toStr}` : ""}. "Importaciones recientes" sigue mostrando los últimos
-            archivos subidos en general, sin filtrar.
+            {to ? `hasta ${to.toLocaleDateString("es-AR")}` : ""}. "Importaciones recientes" sigue
+            mostrando los últimos archivos subidos en general, sin filtrar.
           </p>
         )}
 
@@ -156,7 +171,14 @@ export default async function DashboardPage({
         </Card>
 
         <Card>
-          <CardHeader title="Importaciones recientes" />
+          <CardHeader
+            title="Importaciones recientes"
+            action={
+              <Link href="/importaciones" className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
+                Ver todas →
+              </Link>
+            }
+          />
           {summary.recentBatches.length === 0 ? (
             <EmptyState
               icon={<IconInbox width={20} height={20} />}

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 
@@ -139,4 +139,115 @@ export async function getUnmatchedTransactions() {
     .from(transactions)
     .where(sql`${transactions.id} not in (${matchedIds})`)
     .orderBy(desc(transactions.date));
+}
+
+// --------------------------------------------------------------------------
+// Importaciones: listado de todos los archivos subidos (resúmenes de
+// tarjeta, CSV de banco, CSV de AFIP) con cuántos de sus movimientos ya
+// quedaron conciliados, y el detalle movimiento por movimiento de un lote.
+// --------------------------------------------------------------------------
+
+export type BatchStats = {
+  total: number;
+  conciliados: number;
+  pendientes: number;
+  sinConciliar: number;
+};
+
+const EMPTY_STATS: BatchStats = { total: 0, conciliados: 0, pendientes: 0, sinConciliar: 0 };
+
+// Si una transacción quedó en más de un match a la vez (ej: una sugerencia
+// vieja rechazada y una nueva confirmada), se prioriza el status "más
+// resuelto" para decidir en qué balde cae.
+const STATUS_PRIORITY: Record<string, number> = {
+  confirmed: 3,
+  manual: 3,
+  auto: 3,
+  pending: 2,
+  rejected: 1,
+};
+
+function bucketFor(status: string | undefined): "conciliados" | "pendientes" | "sinConciliar" {
+  if (status === "auto" || status === "confirmed" || status === "manual") return "conciliados";
+  if (status === "pending") return "pendientes";
+  return "sinConciliar";
+}
+
+/** Todos los lotes importados (no solo los recientes), con sus stats de conciliación. */
+export async function getImportBatchesWithStats() {
+  const batches = await db.select().from(importBatches).orderBy(desc(importBatches.importedAt));
+
+  const txns = await db
+    .select({ id: transactions.id, batchId: transactions.batchId })
+    .from(transactions);
+
+  const matchRows = await db
+    .select({ transactionId: matchItems.transactionId, status: matches.status })
+    .from(matchItems)
+    .innerJoin(matches, eq(matches.id, matchItems.matchId));
+
+  const bestStatusByTxnId = new Map<number, string>();
+  for (const r of matchRows) {
+    const prev = bestStatusByTxnId.get(r.transactionId);
+    if (!prev || (STATUS_PRIORITY[r.status] ?? 0) > (STATUS_PRIORITY[prev] ?? 0)) {
+      bestStatusByTxnId.set(r.transactionId, r.status);
+    }
+  }
+
+  const statsByBatch = new Map<number, BatchStats>();
+  for (const t of txns) {
+    const s = statsByBatch.get(t.batchId) ?? { ...EMPTY_STATS };
+    s.total++;
+    s[bucketFor(bestStatusByTxnId.get(t.id))]++;
+    statsByBatch.set(t.batchId, s);
+  }
+
+  return batches.map((b) => ({ batch: b, stats: statsByBatch.get(b.id) ?? EMPTY_STATS }));
+}
+
+export type TransactionWithMatchStatus = {
+  txn: typeof transactions.$inferSelect;
+  matchStatus: string | null;
+};
+
+/** Un lote puntual con todos sus movimientos y el estado de conciliación de cada uno. */
+export async function getBatchDetail(batchId: number) {
+  const [batch] = await db.select().from(importBatches).where(eq(importBatches.id, batchId)).limit(1);
+  if (!batch) return null;
+
+  const txns = await db
+    .select()
+    .from(transactions)
+    .where(eq(transactions.batchId, batchId))
+    .orderBy(desc(transactions.date));
+
+  const txnIds = txns.map((t) => t.id);
+  const matchRows = txnIds.length
+    ? await db
+        .select({ transactionId: matchItems.transactionId, status: matches.status })
+        .from(matchItems)
+        .innerJoin(matches, eq(matches.id, matchItems.matchId))
+        .where(inArray(matchItems.transactionId, txnIds))
+    : [];
+
+  const bestStatusByTxnId = new Map<number, string>();
+  for (const r of matchRows) {
+    const prev = bestStatusByTxnId.get(r.transactionId);
+    if (!prev || (STATUS_PRIORITY[r.status] ?? 0) > (STATUS_PRIORITY[prev] ?? 0)) {
+      bestStatusByTxnId.set(r.transactionId, r.status);
+    }
+  }
+
+  const rows: TransactionWithMatchStatus[] = txns.map((txn) => ({
+    txn,
+    matchStatus: bestStatusByTxnId.get(txn.id) ?? null,
+  }));
+
+  const stats = { ...EMPTY_STATS };
+  for (const r of rows) {
+    stats.total++;
+    stats[bucketFor(r.matchStatus ?? undefined)]++;
+  }
+
+  return { batch, rows, stats };
 }
