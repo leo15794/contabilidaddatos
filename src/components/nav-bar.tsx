@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
-import { IconLayoutDashboard, IconUpload, IconCheckCircle, IconLogOut } from "./icons";
+import { IconLayoutDashboard, IconUpload, IconCheckCircle, IconFileText, IconLogOut } from "./icons";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
   { href: "/import", label: "Importar", icon: IconUpload },
   { href: "/review", label: "Revisión", icon: IconCheckCircle },
+  { href: "/conciliados", label: "Conciliados", icon: IconFileText },
 ];
 
 export function NavBar() {

@@ -101,6 +101,32 @@ export async function getPendingMatches() {
   return result;
 }
 
+/** Matches ya resueltos (confirmados a mano, cargados a mano, o auto-confirmados por el motor). */
+export async function getConfirmedMatches(limit = 200) {
+  const resolved = await db
+    .select()
+    .from(matches)
+    .where(sql`${matches.status} in ('confirmed', 'manual', 'auto')`)
+    .orderBy(desc(matches.createdAt))
+    .limit(limit);
+
+  const [{ count: totalCount }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(matches)
+    .where(sql`${matches.status} in ('confirmed', 'manual', 'auto')`);
+
+  const result = [];
+  for (const m of resolved) {
+    const items = await db
+      .select({ txn: transactions })
+      .from(matchItems)
+      .innerJoin(transactions, eq(transactions.id, matchItems.transactionId))
+      .where(eq(matchItems.matchId, m.id));
+    result.push({ match: m, transactions: items.map((i) => i.txn) });
+  }
+  return { matches: result, totalCount };
+}
+
 export async function getUnmatchedTransactions() {
   const matchedIds = db
     .select({ id: matchItems.transactionId })

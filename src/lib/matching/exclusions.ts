@@ -15,6 +15,7 @@
 const NON_RECONCILABLE_PATTERNS: RegExp[] = [
   /tasa\s*gral/i, // DBCR ... TASA GRAL: impuesto al débito/crédito del propio banco
   /sircreb/i, // RET. ING. BRUTOS SIRCREB: retención de ingresos brutos
+  /retenci/i, // cualquier otra retención que el banco aplica de oficio (IIBB, Ganancias, etc.), no es un pago a un tercero
   /\bmismo\b/i, // transferencias/saldos entre cuentas del mismo titular ("MISMO TIT", "CCDO MISMO")
   /mantenimiento/i, // mantenimiento de cuenta/paquete
   /^imp\.?\s*afip/i, // pago de impuestos a AFIP (no corresponde a una factura puntual)

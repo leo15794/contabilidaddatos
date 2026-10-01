@@ -21,6 +21,20 @@ const DEFAULTS: Required<EngineOptions> = {
 
 type Txn = typeof transactions.$inferSelect;
 
+// Un movimiento de pago (banco/tarjeta) solo puede conciliar contra un
+// justificativo (factura AFIP o ticket), nunca contra otro movimiento de
+// pago ni —el bug que reportó Leo— una factura emitida contra una recibida:
+// son dos comprobantes propios, no un pago real cruzando con un comprobante.
+const MOVEMENT_SOURCES = new Set(["bank", "card"]);
+const JUSTIFICATION_SOURCES = new Set(["afip_issued", "afip_received", "ticket"]);
+
+function canSourcesMatch(a: string, b: string): boolean {
+  return (
+    (MOVEMENT_SOURCES.has(a) && JUSTIFICATION_SOURCES.has(b)) ||
+    (MOVEMENT_SOURCES.has(b) && JUSTIFICATION_SOURCES.has(a))
+  );
+}
+
 function daysBetween(a: Date, b: Date): number {
   return Math.abs(a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24);
 }
@@ -81,6 +95,8 @@ async function runExact1to1(pool: Txn[], opts: Required<EngineOptions>) {
       const b = pool[j];
       if (used.has(b.id)) continue;
       if (b.source === a.source) continue; // tiene que ser de otra fuente
+      if (!canSourcesMatch(a.source, b.source)) continue; // y tiene que ser pago<->justificativo, no dos comprobantes propios
+
       const amountB = Number(b.amount);
 
       const sameSign = Math.sign(amountA) === Math.sign(amountB);
@@ -181,6 +197,7 @@ async function runFuzzySuggestions(pool: Txn[], opts: Required<EngineOptions>) {
       const b = pool[j];
       if (used.has(b.id)) continue;
       if (b.source === a.source) continue;
+      if (!canSourcesMatch(a.source, b.source)) continue;
       const amountB = Number(b.amount);
       if (Math.sign(amountA) !== Math.sign(amountB)) continue;
 
