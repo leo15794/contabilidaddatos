@@ -1,9 +1,18 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 
-export async function getDashboardSummary() {
-  const allTxns = await db.select().from(transactions);
+export type DateRange = { from?: Date; to?: Date };
+
+export async function getDashboardSummary(range: DateRange = {}) {
+  const dateConditions = [];
+  if (range.from) dateConditions.push(gte(transactions.date, range.from));
+  if (range.to) dateConditions.push(lte(transactions.date, range.to));
+  const dateFilter = dateConditions.length > 0 ? and(...dateConditions) : undefined;
+
+  const allTxns = dateFilter
+    ? await db.select().from(transactions).where(dateFilter)
+    : await db.select().from(transactions);
 
   const bySource = {
     bank: { count: 0, total: 0 },
@@ -24,16 +33,18 @@ export async function getDashboardSummary() {
     else egresos += amount;
   }
 
+  // Nota: estos dos van sin filtrar por fecha (traen matchId también) para
+  // poder recortarlos contra `allTxns` (que sí está filtrado) abajo.
   const matchedTxnIds = await db
     .select({ id: matchItems.transactionId })
     .from(matchItems)
     .innerJoin(matches, eq(matches.id, matchItems.matchId))
     .where(sql`${matches.status} in ('auto','confirmed','manual')`);
 
-  const confirmedCount = new Set(matchedTxnIds.map((r) => r.id)).size;
-  const pendingCount = await db
-    .select({ id: matches.id })
-    .from(matches)
+  const pendingItems = await db
+    .select({ matchId: matchItems.matchId, transactionId: matchItems.transactionId })
+    .from(matchItems)
+    .innerJoin(matches, eq(matches.id, matchItems.matchId))
     .where(eq(matches.status, "pending"));
 
   const recentBatches = await db
@@ -42,9 +53,18 @@ export async function getDashboardSummary() {
     .orderBy(desc(importBatches.importedAt))
     .limit(10);
 
+  const allTxnIds = new Set(allTxns.map((t) => t.id));
+
+  // % conciliado y pendientes de revisar, recortados al rango de fechas:
+  // una transacción/match solo cuenta si cae dentro de `allTxns` (ya filtrado).
+  const matchedIdSet = new Set(matchedTxnIds.map((r) => r.id));
+  const confirmedCount = allTxns.filter((t) => matchedIdSet.has(t.id)).length;
+  const pendingMatchIdsInRange = new Set(
+    pendingItems.filter((i) => allTxnIds.has(i.transactionId)).map((i) => i.matchId),
+  );
+
   // Tickets (fotos por WhatsApp) sin ningún match, con más de 3 días: probablemente
   // les falta la factura AFIP correspondiente — vale la pena avisar.
-  const matchedIdSet = new Set(matchedTxnIds.map((r) => r.id));
   const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
   const ticketsSinFactura = allTxns.filter(
     (t) => t.source === "ticket" && !matchedIdSet.has(t.id) && t.date <= threeDaysAgo,
@@ -56,7 +76,7 @@ export async function getDashboardSummary() {
     egresos,
     totalTxns: allTxns.length,
     conciliadoPct: allTxns.length === 0 ? 0 : Math.round((confirmedCount / allTxns.length) * 100),
-    pendingReviewCount: pendingCount.length,
+    pendingReviewCount: pendingMatchIdsInRange.size,
     ticketsSinFactura,
     recentBatches,
   };

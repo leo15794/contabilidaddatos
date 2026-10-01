@@ -24,20 +24,77 @@ const SOURCE_LABELS: Record<string, string> = {
   ticket: "Ticket (WhatsApp)",
 };
 
-export default async function DashboardPage() {
-  const summary = await getDashboardSummary();
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const { from: fromStr, to: toStr } = await searchParams;
+
+  // Fechas en los inputs vienen como "yyyy-mm-dd" (hora local). "to" se lleva
+  // hasta el final del día para que incluya todo ese día.
+  const from = fromStr ? new Date(`${fromStr}T00:00:00`) : undefined;
+  const to = toStr ? new Date(`${toStr}T23:59:59.999`) : undefined;
+  const hasFilter = Boolean(from || to);
+
+  const summary = await getDashboardSummary({ from, to });
 
   return (
     <div className="flex min-h-screen flex-col">
       <NavBar />
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
             <p className="text-sm text-slate-500">Estado general de la conciliación</p>
           </div>
-          <ReconcileButton />
+          <div className="flex flex-wrap items-center gap-3">
+            <form className="flex items-end gap-2" action="/dashboard" method="GET">
+              <label className="flex flex-col text-xs text-slate-500">
+                Desde
+                <input
+                  type="date"
+                  name="from"
+                  defaultValue={fromStr ?? ""}
+                  className="mt-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                />
+              </label>
+              <label className="flex flex-col text-xs text-slate-500">
+                Hasta
+                <input
+                  type="date"
+                  name="to"
+                  defaultValue={toStr ?? ""}
+                  className="mt-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                />
+              </label>
+              <button
+                type="submit"
+                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+              >
+                Filtrar
+              </button>
+              {hasFilter && (
+                <a
+                  href="/dashboard"
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100"
+                >
+                  Limpiar
+                </a>
+              )}
+            </form>
+            <ReconcileButton />
+          </div>
         </div>
+
+        {hasFilter && (
+          <p className="-mt-3 mb-6 text-xs text-slate-500">
+            Mostrando movimientos {from ? `desde ${fromStr}` : ""}
+            {from && to ? " " : ""}
+            {to ? `hasta ${toStr}` : ""}. "Importaciones recientes" sigue mostrando los últimos
+            archivos subidos en general, sin filtrar.
+          </p>
+        )}
 
         <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
           <Stat
