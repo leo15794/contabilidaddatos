@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
-import { IconLayoutDashboard, IconUpload, IconCheckCircle, IconFileText, IconInbox, IconLogOut } from "./icons";
+import {
+  IconLayoutDashboard,
+  IconUpload,
+  IconCheckCircle,
+  IconFileText,
+  IconInbox,
+  IconMessageCircle,
+  IconLogOut,
+  IconArrowUpRight,
+} from "./icons";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
@@ -12,6 +21,13 @@ const LINKS = [
   { href: "/review", label: "Revisión", icon: IconCheckCircle },
   { href: "/conciliados", label: "Conciliados", icon: IconFileText },
 ];
+
+// Link al dashboard de OpenWA (el gateway de WhatsApp self-hosted, ver
+// openwa/ y la sección "Agente de WhatsApp" del README) — vive en el VPS,
+// no en esta app, así que es un link externo, no una ruta de Next. Solo
+// aparece si está configurado; si todavía no se levantó el VPS, no se
+// muestra un botón roto.
+const OPENWA_URL = process.env.NEXT_PUBLIC_OPENWA_URL;
 
 export function NavBar() {
   const pathname = usePathname();
@@ -50,15 +66,30 @@ export function NavBar() {
             })}
           </nav>
         </div>
-        <form action={logoutAction}>
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-          >
-            <IconLogOut width={15} height={15} />
-            Salir
-          </button>
-        </form>
+        <div className="flex items-center gap-1">
+          {OPENWA_URL && (
+            <a
+              href={OPENWA_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+              title="Abrir el dashboard de OpenWA (gestión de la sesión de WhatsApp)"
+            >
+              <IconMessageCircle width={15} height={15} />
+              WhatsApp
+              <IconArrowUpRight width={12} height={12} className="text-slate-400" />
+            </a>
+          )}
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            >
+              <IconLogOut width={15} height={15} />
+              Salir
+            </button>
+          </form>
+        </div>
       </div>
     </header>
   );
