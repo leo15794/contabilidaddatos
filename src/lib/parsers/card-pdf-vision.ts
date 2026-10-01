@@ -236,7 +236,7 @@ export async function parseCardStatementWithVision(
   for (const cargo of extraction.cargosVarios ?? []) {
     rows.push({
       date: parseArDate(normalizeFecha(extraction.cierre ?? "")) ?? new Date(),
-      descripcion: cargo.descripcion,
+      description: cargo.descripcion,
       amount: -Math.abs(cargo.importe),
       currency: "ARS",
       counterparty: "Banco (cargo del resumen)",
