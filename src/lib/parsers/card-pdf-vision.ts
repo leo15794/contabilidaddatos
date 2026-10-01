@@ -150,12 +150,17 @@ export async function parseCardStatementWithVision(
   const truncNote = truncated
     ? " La respuesta se cortó por límite de tokens de salida — probá subir el PDF de nuevo solo, o avisame si vuelve a pasar."
     : "";
+  // Se adjunta un fragmento de lo que realmente contestó el modelo — sin esto,
+  // un fallo acá era una caja negra total (ni Leo ni yo podíamos ver por qué).
+  const snippet = raw.trim().slice(0, 400);
 
   const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     return {
       rows: [],
-      warnings: [`No se pudo interpretar la respuesta del modelo al leer el PDF.${truncNote}`],
+      warnings: [
+        `No se pudo interpretar la respuesta del modelo al leer el PDF.${truncNote} Respuesta: "${snippet}"`,
+      ],
       extraction: null,
       needsReview: true,
       reviewNotes: [],
@@ -165,10 +170,12 @@ export async function parseCardStatementWithVision(
   let extraction: StatementExtraction;
   try {
     extraction = JSON.parse(jsonMatch[0]) as StatementExtraction;
-  } catch {
+  } catch (parseErr) {
     return {
       rows: [],
-      warnings: [`La respuesta del modelo no era JSON válido.${truncNote}`],
+      warnings: [
+        `La respuesta del modelo no era JSON válido.${truncNote} Error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}. Respuesta: "${snippet}"`,
+      ],
       extraction: null,
       needsReview: true,
       reviewNotes: [],
