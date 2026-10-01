@@ -1,12 +1,5 @@
 "use server";
 
-// Leer un resumen de tarjeta con Claude (y mas si se suben varios PDF juntos)
-// puede tardar bien mas que los 10s que Vercel usa de limite por default en
-// las funciones. Sin esto, la conexion se corta a mitad de camino y el
-// navegador muestra "la pagina no pudo cargar" aunque el server siga
-// procesando. 60s es el maximo permitido en el plan Hobby.
-export const maxDuration = 60;
-
 import { revalidatePath } from "next/cache";
 import { parseAfipCsv } from "@/lib/parsers/afip-csv";
 import { parseBankCsv, BankColumnMapping } from "@/lib/parsers/bank-csv";
@@ -117,10 +110,23 @@ async function importOneCardFile(
 
   // Primero el parser por texto (rápido, sin costo de API) — sirve para
   // resúmenes que sí traen texto seleccionable adentro del PDF.
-  const { parseCardPdf } = await import("@/lib/parsers/card-pdf");
-  const textParsed = await parseCardPdf(buffer, statementYear);
+  // pdf-parse (vía pdfjs-dist) puede tirar una excepción en vez de
+  // simplemente devolver "sin texto" — por ejemplo si no puede levantar su
+  // worker interno en este runtime. Si pasa, no debe tirar abajo todo el
+  // request: se trata como "no encontró texto" y se sigue directo al lector
+  // con Claude, que es el que de verdad va a poder leer este PDF.
+  let textParsed: Awaited<ReturnType<typeof import("@/lib/parsers/card-pdf").parseCardPdf>> | null = null;
+  const textWarnings: string[] = [];
+  try {
+    const { parseCardPdf } = await import("@/lib/parsers/card-pdf");
+    textParsed = await parseCardPdf(buffer, statementYear);
+  } catch (err) {
+    textWarnings.push(
+      `El lector por texto falló (${err instanceof Error ? err.message : String(err)}) — se sigue con el lector visual.`,
+    );
+  }
 
-  if (textParsed.rows.length > 0) {
+  if (textParsed && textParsed.rows.length > 0) {
     const saved = await saveImportAndReconcile("card", file.name, accountRef, textParsed, {
       issuer: textParsed.issuer,
       closingBalance: textParsed.closingBalance,
@@ -141,7 +147,7 @@ async function importOneCardFile(
     return {
       ok: false,
       error: `"${file.name}": no se pudo leer ningún consumo (ni por texto ni con el lector visual).`,
-      warnings: [...textParsed.warnings, ...vision.warnings],
+      warnings: [...textWarnings, ...(textParsed?.warnings ?? []), ...vision.warnings],
     };
   }
 
@@ -168,7 +174,7 @@ async function importOneCardFile(
   return {
     ok: true,
     summary: `"${file.name}": ${saved.rowCount} consumos de "${accountRef}" (leído con Claude, el PDF no tenía texto). ${saved.reconcile.cardStatementMatches} matches automáticos.${reviewNote}`,
-    warnings: [...textParsed.warnings, ...vision.warnings],
+    warnings: [...textWarnings, ...(textParsed?.warnings ?? []), ...vision.warnings],
   };
 }
 

@@ -5,6 +5,14 @@ import { CardImportForm } from "./card-form";
 import { Card, CardHeader } from "@/components/ui";
 import { IconBank, IconFileText, IconCreditCard } from "@/components/icons";
 
+// Leer un resumen de tarjeta con Claude (y más si se suben varios PDF juntos)
+// puede tardar bien más que los 10s que Vercel usa de límite por default en
+// las funciones. Sin esto, la conexión se corta a mitad de camino y el
+// navegador muestra "la página no pudo cargar" aunque el server siga
+// procesando. 60s es el máximo permitido en el plan Hobby. (Va acá, en la
+// página — un archivo "use server" solo puede exportar funciones async.)
+export const maxDuration = 60;
+
 export default function ImportPage() {
   return (
     <div className="flex min-h-screen flex-col">
