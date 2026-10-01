@@ -143,7 +143,12 @@ export async function parseCardStatementWithVision(
           },
         ],
       },
-      { timeout: 45_000, maxRetries: 1 },
+      // OJO: maxRetries:1 con timeout:45s podía sumar HASTA 90s (dos
+      // intentos de 45s) si el primero se colgaba — eso superaba igual el
+      // límite de 60s de Vercel y volvía a producir el mismo crash. Un solo
+      // intento (sin reintento) deja margen real: falla a los 50s como
+      // mucho, bien antes de que Vercel mate la función a los 60s.
+      { timeout: 50_000, maxRetries: 0 },
     );
     truncated = response.stop_reason === "max_tokens";
     const textBlock = response.content.find((b) => b.type === "text");
