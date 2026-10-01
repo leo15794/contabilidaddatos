@@ -33,14 +33,18 @@ export function CardImportForm() {
         </p>
       </div>
       <div>
-        <label className="mb-1.5 block text-xs font-medium text-slate-700">Archivo PDF</label>
+        <label className="mb-1.5 block text-xs font-medium text-slate-700">Archivo(s) PDF</label>
         <input
           type="file"
           name="file"
           accept=".pdf,application/pdf"
+          multiple
           required
           className="w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
         />
+        <p className="mt-1 text-[11px] text-slate-400">
+          Podés seleccionar varios resúmenes de una vez (ej: uno por mes) — se procesan todos con la misma tarjeta/año de acá arriba.
+        </p>
       </div>
       <Button type="submit" disabled={pending} className="w-full">
         <IconUpload width={14} height={14} />

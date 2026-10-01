@@ -6,6 +6,8 @@ export type ParsedRow = {
   amount: number;
   currency?: string;
   counterparty?: string;
+  /** Si el parser ya sabe a qué cuenta/titular corresponde esta fila puntual (ej. un resumen con varias tarjetas adicionales), pisa el accountRef general del batch. */
+  accountRef?: string;
   raw: Record<string, unknown>;
 };
 

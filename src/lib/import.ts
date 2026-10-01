@@ -32,7 +32,7 @@ export async function saveImport(
         description: row.description,
         amount: row.amount.toFixed(2),
         currency: row.currency ?? "ARS",
-        accountRef: accountRef || null,
+        accountRef: row.accountRef || accountRef || null,
         counterparty: row.counterparty ?? null,
         raw: row.raw,
       })),
