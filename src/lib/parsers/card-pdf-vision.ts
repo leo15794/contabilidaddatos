@@ -118,7 +118,7 @@ export async function parseCardStatementWithVision(
     // la función de Vercel cortada en seco a los 60s (límite duro del plan
     // Hobby) mientras el SDK todavía esperaba/reintentaba la respuesta de
     // Anthropic — eso deja el request a medio cerrar y el navegador no sabe
-    // interpretarlo. Con un timeout propio más corto (45s) y sin reintentos
+    // interpretarlo. Con un timeout propio más corto y sin reintentos
     // automáticos del SDK, si la llamada se cuelga fallamos ANTES de que
     // Vercel mate la función, y el catch de abajo devuelve un aviso
     // entendible en vez de romper el request.
@@ -146,9 +146,14 @@ export async function parseCardStatementWithVision(
       // OJO: maxRetries:1 con timeout:45s podía sumar HASTA 90s (dos
       // intentos de 45s) si el primero se colgaba — eso superaba igual el
       // límite de 60s de Vercel y volvía a producir el mismo crash. Un solo
-      // intento (sin reintento) deja margen real: falla a los 50s como
-      // mucho, bien antes de que Vercel mate la función a los 60s.
-      { timeout: 50_000, maxRetries: 0 },
+      // intento (sin reintento) deja margen real. Se subió de 50s a 56s
+      // porque algunos resúmenes (no necesariamente los más "pesados" en
+      // tamaño o cantidad de consumos) tardan un poco más en leerse — con
+      // 50s cortábamos justo antes de que terminaran. 56s deja ~4s de
+      // margen para el resto de la función (parsear, guardar en la base)
+      // antes de que Vercel mate todo a los 60s — es el margen más grande
+      // que se puede dar sin arriesgarse a pisar el límite duro del plan.
+      { timeout: 56_000, maxRetries: 0 },
     );
     truncated = response.stop_reason === "max_tokens";
     const textBlock = response.content.find((b) => b.type === "text");
