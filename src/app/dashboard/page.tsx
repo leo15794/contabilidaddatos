@@ -10,6 +10,7 @@ import {
   IconClock,
   IconAlertTriangle,
   IconInbox,
+  IconFileText,
 } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -111,7 +112,7 @@ export default async function DashboardPage({
           </p>
         )}
 
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-5">
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <Stat
             label="Ingresos"
             value={fmt.format(summary.ingresos)}
@@ -141,6 +142,12 @@ export default async function DashboardPage({
             value={String(summary.ticketsSinFactura)}
             tone={summary.ticketsSinFactura > 0 ? "warning" : "neutral"}
             icon={<IconAlertTriangle width={17} height={17} />}
+          />
+          <Stat
+            label="Categorizados (sin conciliación)"
+            value={String(summary.categorizadosCount)}
+            tone="violet"
+            icon={<IconFileText width={17} height={17} />}
           />
         </div>
 
@@ -235,7 +242,7 @@ function Stat({
 }: {
   label: string;
   value: string;
-  tone: "positive" | "negative" | "brand" | "neutral" | "warning";
+  tone: "positive" | "negative" | "brand" | "neutral" | "warning" | "violet";
   icon: React.ReactNode;
 }) {
   const styles = {
@@ -244,6 +251,7 @@ function Stat({
     brand: { text: "text-indigo-600", bg: "bg-indigo-50" },
     neutral: { text: "text-slate-700", bg: "bg-slate-100" },
     warning: { text: "text-amber-600", bg: "bg-amber-50" },
+    violet: { text: "text-violet-600", bg: "bg-violet-50" },
   }[tone];
 
   return (

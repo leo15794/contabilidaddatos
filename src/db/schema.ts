@@ -78,6 +78,12 @@ export const transactions = pgTable(
     accountRef: text("account_ref"),
     // CUIT o razón social de la contraparte, cuando se puede extraer
     counterparty: text("counterparty"),
+    // Categoría manual (ej: "Gastos operativos") para movimientos que NO
+    // necesitan conciliación porque no tienen contraparte real que cruzar —
+    // comisiones, impuestos y cargos que el banco cobra directo en el
+    // resumen de tarjeta. Se asigna a mano desde /importaciones; mientras
+    // esté null, el movimiento sigue necesitando conciliación como siempre.
+    category: text("category"),
     // documento original completo (fila CSV, o bloque de texto del PDF)
     raw: jsonb("raw"),
     createdAt: timestamp("created_at", { withTimezone: true })

@@ -2,21 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NavBar } from "@/components/nav-bar";
 import { getBatchDetail } from "@/lib/queries";
-import { Card, CardHeader, SourceBadge, Amount } from "@/components/ui";
+import { Card, CardHeader, SourceBadge } from "@/components/ui";
 import { IconArrowLeft } from "@/components/icons";
+import { BatchTransactionsTable } from "../batch-transactions-table";
 
 export const dynamic = "force-dynamic";
 
 const fmtDateTime = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" });
 const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" });
-
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  auto: { bg: "bg-sky-100", text: "text-sky-800", label: "Conciliado (automático)" },
-  confirmed: { bg: "bg-emerald-100", text: "text-emerald-800", label: "Conciliado (confirmado)" },
-  manual: { bg: "bg-indigo-100", text: "text-indigo-800", label: "Conciliado (manual)" },
-  pending: { bg: "bg-amber-100", text: "text-amber-800", label: "Pendiente de revisar" },
-};
-const NONE_STYLE = { bg: "bg-slate-100", text: "text-slate-600", label: "Sin conciliar" };
 
 export default async function ImportBatchDetailPage({
   params,
@@ -56,11 +49,12 @@ export default async function ImportBatchDetailPage({
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
           <MiniStat label="Movimientos" value={String(stats.total)} tone="neutral" />
           <MiniStat label="Conciliados" value={String(stats.conciliados)} tone="positive" />
           <MiniStat label="Pendientes de revisar" value={String(stats.pendientes)} tone="warning" />
           <MiniStat label="Sin conciliar" value={String(stats.sinConciliar)} tone="neutral" />
+          <MiniStat label="Categorizados" value={String(stats.categorizados)} tone="brand" />
         </div>
 
         <Card>
@@ -68,46 +62,11 @@ export default async function ImportBatchDetailPage({
             title="Movimientos de este archivo"
             subtitle={
               stats.pendientes > 0 || stats.sinConciliar > 0
-                ? "Los que no están conciliados se pueden resolver desde Revisión."
+                ? "Los que no van a tener nunca una contraparte (comisiones, impuestos, intereses del resumen) se pueden marcar con una categoría en vez de dejarlos \"sin conciliar\"."
                 : undefined
             }
           />
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-              <tr>
-                <th className="px-5 py-2.5 font-medium">Fecha</th>
-                <th className="px-5 py-2.5 font-medium">Descripción</th>
-                <th className="px-5 py-2.5 font-medium">Importe</th>
-                <th className="px-5 py-2.5 font-medium">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ txn, matchStatus }) => {
-                const style = (matchStatus && STATUS_STYLES[matchStatus]) || NONE_STYLE;
-                return (
-                  <tr key={txn.id} className="border-t border-slate-100 hover:bg-slate-50/80">
-                    <td className="whitespace-nowrap px-5 py-3 text-slate-500">{fmtDate.format(txn.date)}</td>
-                    <td className="px-5 py-3 text-slate-700">
-                      {txn.description}
-                      {txn.accountRef && txn.accountRef !== batch.accountRef && (
-                        <span className="ml-1.5 text-xs text-slate-400">({txn.accountRef})</span>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-3">
-                      <Amount value={Number(txn.amount)} />
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-3">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${style.bg} ${style.text}`}
-                      >
-                        {style.label}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <BatchTransactionsTable batchId={batch.id} batchAccountRef={batch.accountRef} rows={rows} />
         </Card>
       </main>
     </div>
@@ -121,12 +80,13 @@ function MiniStat({
 }: {
   label: string;
   value: string;
-  tone: "positive" | "neutral" | "warning";
+  tone: "positive" | "neutral" | "warning" | "brand";
 }) {
   const styles = {
     positive: { text: "text-emerald-600", bg: "bg-emerald-50" },
     neutral: { text: "text-slate-700", bg: "bg-slate-100" },
     warning: { text: "text-amber-600", bg: "bg-amber-50" },
+    brand: { text: "text-violet-600", bg: "bg-violet-50" },
   }[tone];
 
   return (

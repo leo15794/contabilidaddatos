@@ -96,23 +96,31 @@ export default async function ImportacionesPage() {
 function ConciliationBar({
   stats,
 }: {
-  stats: { total: number; conciliados: number; pendientes: number; sinConciliar: number };
+  stats: { total: number; conciliados: number; pendientes: number; sinConciliar: number; categorizados: number };
 }) {
   if (stats.total === 0) {
     return <span className="text-xs text-slate-400">Sin movimientos</span>;
   }
-  const pct = Math.round((stats.conciliados / stats.total) * 100);
+  // Los categorizados (ej. "Gastos operativos") no necesitan conciliación —
+  // se sacan de la base del % para que sea alcanzable al 100%.
+  const base = stats.total - stats.categorizados;
+  const pct = base <= 0 ? 100 : Math.round((stats.conciliados / base) * 100);
   return (
-    <div className="flex min-w-[140px] items-center gap-2">
+    <div className="flex min-w-[140px] flex-wrap items-center gap-2">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
         <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
       </div>
       <span className="shrink-0 text-xs tabular-nums text-slate-500">
-        {stats.conciliados}/{stats.total}
+        {stats.conciliados}/{base}
       </span>
       {stats.pendientes > 0 && (
         <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
           {stats.pendientes} rev.
+        </span>
+      )}
+      {stats.categorizados > 0 && (
+        <span className="shrink-0 rounded-full bg-violet-50 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+          {stats.categorizados} categ.
         </span>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 
@@ -70,14 +70,25 @@ export async function getDashboardSummary(range: DateRange = {}) {
     (t) => t.source === "ticket" && !matchedIdSet.has(t.id) && t.date <= threeDaysAgo,
   ).length;
 
+  // Movimientos categorizados a mano (ej. "Gastos operativos" — comisiones,
+  // impuestos y cargos que cobra el banco directo en el resumen, sin ninguna
+  // contraparte real para cruzar) no necesitan conciliación — se sacan del
+  // denominador del % conciliado para que ese número sea alcanzable al 100%.
+  const categorizedTxns = allTxns.filter((t) => t.category);
+  const categorizadosCount = categorizedTxns.length;
+  const categorizadosTotal = categorizedTxns.reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0);
+  const pctDenominator = allTxns.length - categorizadosCount;
+
   return {
     bySource,
     ingresos,
     egresos,
     totalTxns: allTxns.length,
-    conciliadoPct: allTxns.length === 0 ? 0 : Math.round((confirmedCount / allTxns.length) * 100),
+    conciliadoPct: pctDenominator <= 0 ? 100 : Math.round((confirmedCount / pctDenominator) * 100),
     pendingReviewCount: pendingMatchIdsInRange.size,
     ticketsSinFactura,
+    categorizadosCount,
+    categorizadosTotal,
     recentBatches,
   };
 }
@@ -134,10 +145,12 @@ export async function getUnmatchedTransactions() {
     .innerJoin(matches, eq(matches.id, matchItems.matchId))
     .where(sql`${matches.status} != 'rejected'`);
 
+  // Los categorizados a mano (ej. "Gastos operativos") no tienen contraparte
+  // para cruzar — no tiene sentido que aparezcan acá como "sin match".
   return db
     .select()
     .from(transactions)
-    .where(sql`${transactions.id} not in (${matchedIds})`)
+    .where(and(sql`${transactions.id} not in (${matchedIds})`, isNull(transactions.category)))
     .orderBy(desc(transactions.date));
 }
 
@@ -152,9 +165,16 @@ export type BatchStats = {
   conciliados: number;
   pendientes: number;
   sinConciliar: number;
+  categorizados: number;
 };
 
-const EMPTY_STATS: BatchStats = { total: 0, conciliados: 0, pendientes: 0, sinConciliar: 0 };
+const EMPTY_STATS: BatchStats = {
+  total: 0,
+  conciliados: 0,
+  pendientes: 0,
+  sinConciliar: 0,
+  categorizados: 0,
+};
 
 // Si una transacción quedó en más de un match a la vez (ej: una sugerencia
 // vieja rechazada y una nueva confirmada), se prioriza el status "más
@@ -167,7 +187,14 @@ const STATUS_PRIORITY: Record<string, number> = {
   rejected: 1,
 };
 
-function bucketFor(status: string | undefined): "conciliados" | "pendientes" | "sinConciliar" {
+// Una transacción categorizada a mano (ej. "Gastos operativos") no necesita
+// contraparte — eso manda por sobre cualquier estado de match que pudiera
+// tener (en la práctica nunca tiene uno, pero por las dudas).
+function bucketFor(
+  status: string | undefined,
+  category: string | null | undefined,
+): "conciliados" | "pendientes" | "sinConciliar" | "categorizados" {
+  if (category) return "categorizados";
   if (status === "auto" || status === "confirmed" || status === "manual") return "conciliados";
   if (status === "pending") return "pendientes";
   return "sinConciliar";
@@ -178,7 +205,7 @@ export async function getImportBatchesWithStats() {
   const batches = await db.select().from(importBatches).orderBy(desc(importBatches.importedAt));
 
   const txns = await db
-    .select({ id: transactions.id, batchId: transactions.batchId })
+    .select({ id: transactions.id, batchId: transactions.batchId, category: transactions.category })
     .from(transactions);
 
   const matchRows = await db
@@ -198,7 +225,7 @@ export async function getImportBatchesWithStats() {
   for (const t of txns) {
     const s = statsByBatch.get(t.batchId) ?? { ...EMPTY_STATS };
     s.total++;
-    s[bucketFor(bestStatusByTxnId.get(t.id))]++;
+    s[bucketFor(bestStatusByTxnId.get(t.id), t.category)]++;
     statsByBatch.set(t.batchId, s);
   }
 
@@ -246,8 +273,17 @@ export async function getBatchDetail(batchId: number) {
   const stats = { ...EMPTY_STATS };
   for (const r of rows) {
     stats.total++;
-    stats[bucketFor(r.matchStatus ?? undefined)]++;
+    stats[bucketFor(r.matchStatus ?? undefined, r.txn.category)]++;
   }
 
   return { batch, rows, stats };
+}
+
+/** Asigna (o quita, con `category: null`) una categoría manual a un conjunto de movimientos. */
+export async function setTransactionsCategory(transactionIds: number[], category: string | null) {
+  if (transactionIds.length === 0) return;
+  await db
+    .update(transactions)
+    .set({ category })
+    .where(inArray(transactions.id, transactionIds));
 }
