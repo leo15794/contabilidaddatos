@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createPartner, deletePartner, monthKeyToDate, setPartnerBalance } from "@/lib/partners";
+import { createPartner, deletePartner, monthKeyToDate, setPartnerBalance, updatePartner } from "@/lib/partners";
 
 export type PartnerFormState = { error?: string; success?: string };
 
@@ -24,6 +24,25 @@ export async function createPartnerAction(
 export async function deletePartnerAction(partnerId: number) {
   await deletePartner(partnerId);
   revalidatePath("/socios");
+}
+
+/** Edita nombre, alias de matching (cómo lo escribe el banco cuando difiere) y teléfono de un socio ya cargado. */
+export async function updatePartnerAction(
+  _prev: PartnerFormState | undefined,
+  formData: FormData,
+): Promise<PartnerFormState> {
+  const partnerId = Number(formData.get("partnerId"));
+  const name = String(formData.get("name") ?? "").trim();
+  const aliasName = String(formData.get("aliasName") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+
+  if (!partnerId || !name) return { error: "Falta el nombre del socio." };
+
+  await updatePartner(partnerId, { name, aliasName: aliasName || null, phone: phone || null });
+
+  revalidatePath(`/socios/${partnerId}`);
+  revalidatePath("/socios");
+  return { success: "Socio actualizado." };
 }
 
 /** Carga/actualiza el saldo que se le asigna a un socio para un mes puntual. */

@@ -146,6 +146,11 @@ export const matchItems = pgTable(
 export const partners = pgTable("partners", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  // El banco no siempre imprime el nombre del titular igual al nombre
+  // "lindo" del socio (typos, inicial del medio: "PATRICIO J MOLLOY" en vez
+  // de "Patricio Moloy") — si está cargado, también cuenta para matchear sus
+  // gastos, sin tener que ensuciar el nombre que se muestra en la app.
+  aliasName: text("alias_name"),
   phone: text("phone"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

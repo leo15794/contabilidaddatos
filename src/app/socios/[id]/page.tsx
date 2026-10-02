@@ -16,6 +16,7 @@ import { Card, CardHeader, Amount, EmptyState } from "@/components/ui";
 import { IconArrowLeft, IconInbox } from "@/components/icons";
 import { BalanceForm } from "../balance-form";
 import { PartnerSpendChart } from "../partner-spend-chart";
+import { EditPartnerForm } from "../edit-partner-form";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +44,10 @@ export default async function PartnerDetailPage({
   const nextMonthKey = dateToMonthKey(addMonths(selectedMonth, 1));
 
   const [{ total: spent }, balance, txns, history] = await Promise.all([
-    getPartnerSpend(partner.name, selectedMonth, monthEnd),
+    getPartnerSpend(partner, selectedMonth, monthEnd),
     getPartnerBalance(partner.id, selectedMonth),
-    getPartnerTransactions(partner.name, selectedMonth, monthEnd),
-    getPartnerMonthlyHistory(partner.name, 6),
+    getPartnerTransactions(partner, selectedMonth, monthEnd),
+    getPartnerMonthlyHistory(partner, 6),
   ]);
 
   const balanceAmount = balance ? Number(balance.amount) : null;
@@ -62,7 +63,14 @@ export default async function PartnerDetailPage({
         </Link>
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold text-slate-900">{partner.name}</h1>
+          <div>
+            <h1 className="text-xl font-semibold text-slate-900">{partner.name}</h1>
+            {partner.aliasName && (
+              <p className="mt-0.5 text-xs text-slate-400">
+                También matchea como <span className="font-medium text-slate-500">&quot;{partner.aliasName}&quot;</span>
+              </p>
+            )}
+          </div>
           <div className="flex items-center gap-2 text-sm">
             <Link
               href={`/socios/${partner.id}?month=${prevMonthKey}`}
@@ -102,6 +110,16 @@ export default async function PartnerDetailPage({
             </p>
           </Card>
         </div>
+
+        <Card className="mb-6">
+          <CardHeader
+            title="Datos del socio"
+            subtitle="Si el banco imprime su nombre distinto (typos, inicial del medio), cargalo acá como alias para que sus gastos se sumen igual."
+          />
+          <div className="px-5 py-4">
+            <EditPartnerForm partner={partner} />
+          </div>
+        </Card>
 
         <Card className="mb-6">
           <CardHeader title="Asignar saldo" subtitle={`Para ${fmtMonth(selectedMonth)}`} />

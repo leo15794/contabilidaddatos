@@ -30,16 +30,27 @@ export function dateToMonthKey(date: Date): string {
 }
 
 /**
- * Condición SQL: "esta transacción es un gasto de tarjeta del socio con este
- * nombre". Hoy solo mira `raw->>'cardholder'` (el titular de la tarjeta
- * adicional, ver `buildRowsFromExtraction`) — cuando el agente de WhatsApp
- * para tickets esté conectado, acá se agrega un `OR` comparando el teléfono
- * del socio contra el remitente del ticket, para que la misma función sirva
+ * Condición SQL: "esta transacción es un gasto de tarjeta de este socio".
+ * Matchea contra `raw->>'cardholder'` (el titular de la tarjeta adicional,
+ * ver `buildRowsFromExtraction`) tanto por el nombre del socio como por su
+ * alias (el banco no siempre imprime el nombre igual — typos, inicial del
+ * medio — ver `aliasName` en el schema). Cuando el agente de WhatsApp para
+ * tickets esté conectado, acá se agrega un `OR` comparando el teléfono del
+ * socio contra el remitente del ticket, para que la misma función sirva
  * para las dos fuentes sin tocar nada más.
  */
-function belongsToPartner(partnerName: string) {
-  const normalized = normalizePartnerName(partnerName);
-  return sql`upper(trim(${transactions.raw}->>'cardholder')) = ${normalized}`;
+function belongsToPartner(partner: Pick<Partner, "name" | "aliasName">) {
+  const names = [partner.name, partner.aliasName]
+    .filter((n): n is string => Boolean(n && n.trim()))
+    .map(normalizePartnerName);
+  // IN (...) armado a mano: pasar un array de JS como bind param no funciona
+  // con este driver (postgres.js lo manda como texto, no como array real de
+  // Postgres) — sql.join con una lista de valores sí arma el IN correcto.
+  const list = sql.join(
+    names.map((n) => sql`${n}`),
+    sql`, `,
+  );
+  return sql`upper(trim(${transactions.raw}->>'cardholder')) in (${list})`;
 }
 
 export async function listPartners(): Promise<Partner[]> {
@@ -63,9 +74,24 @@ export async function deletePartner(id: number): Promise<void> {
   await db.delete(partners).where(eq(partners.id, id));
 }
 
+/** Edita el nombre, alias de matching y/o teléfono de un socio ya cargado. */
+export async function updatePartner(
+  id: number,
+  data: { name: string; aliasName: string | null; phone: string | null },
+): Promise<void> {
+  await db
+    .update(partners)
+    .set({
+      name: data.name.trim(),
+      aliasName: data.aliasName?.trim() || null,
+      phone: data.phone?.trim() || null,
+    })
+    .where(eq(partners.id, id));
+}
+
 /** Gasto total (valor absoluto) atribuido a un socio en un rango de fechas [from, to). Hoy solo tarjeta — ver `belongsToPartner`. */
 export async function getPartnerSpend(
-  partnerName: string,
+  partner: Pick<Partner, "name" | "aliasName">,
   from: Date,
   to: Date,
 ): Promise<{ total: number; count: number }> {
@@ -78,7 +104,7 @@ export async function getPartnerSpend(
     .where(
       and(
         eq(transactions.source, "card"),
-        belongsToPartner(partnerName),
+        belongsToPartner(partner),
         gte(transactions.date, from),
         lt(transactions.date, to),
       ),
@@ -108,14 +134,14 @@ export async function setPartnerBalance(partnerId: number, month: Date, amount: 
 }
 
 /** Lista de movimientos de tarjeta atribuidos a un socio en un rango de fechas, más recientes primero. */
-export async function getPartnerTransactions(partnerName: string, from: Date, to: Date) {
+export async function getPartnerTransactions(partner: Pick<Partner, "name" | "aliasName">, from: Date, to: Date) {
   return db
     .select()
     .from(transactions)
     .where(
       and(
         eq(transactions.source, "card"),
-        belongsToPartner(partnerName),
+        belongsToPartner(partner),
         gte(transactions.date, from),
         lt(transactions.date, to),
       ),
@@ -124,7 +150,7 @@ export async function getPartnerTransactions(partnerName: string, from: Date, to
 }
 
 /** Gasto mes a mes de un socio, para el gráfico de evolución (últimos `monthsBack` meses, incluyendo el actual). */
-export async function getPartnerMonthlyHistory(partnerName: string, monthsBack = 6) {
+export async function getPartnerMonthlyHistory(partner: Pick<Partner, "name" | "aliasName">, monthsBack = 6) {
   const now = new Date();
   const since = addMonths(startOfMonth(now), -(monthsBack - 1));
 
@@ -134,7 +160,7 @@ export async function getPartnerMonthlyHistory(partnerName: string, monthsBack =
       total: sql<string>`sum(abs(${transactions.amount}))`,
     })
     .from(transactions)
-    .where(and(eq(transactions.source, "card"), belongsToPartner(partnerName), gte(transactions.date, since)))
+    .where(and(eq(transactions.source, "card"), belongsToPartner(partner), gte(transactions.date, since)))
     .groupBy(sql`1`)
     .orderBy(sql`1`);
 
@@ -167,7 +193,7 @@ export async function getPartnersSummary(): Promise<PartnerSummary[]> {
 
   const result: PartnerSummary[] = [];
   for (const partner of all) {
-    const { total } = await getPartnerSpend(partner.name, from, to);
+    const { total } = await getPartnerSpend(partner, from, to);
     const balance = await getPartnerBalance(partner.id, from);
     const balanceAmount = balance ? Number(balance.amount) : null;
     result.push({
