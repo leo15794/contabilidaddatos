@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import type { transactions } from "@/db/schema";
-import { categorizeTransactionsAction, uncategorizeTransactionsAction } from "./actions";
+import { categorizeTransactionsAction, uncategorizeTransactionsAction, updateTransactionAmountAction } from "./actions";
 import { Button, Amount } from "@/components/ui";
+import { IconAlertTriangle } from "@/components/icons";
 
 const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" });
 
@@ -131,7 +132,7 @@ export function BatchTransactionsTable({
                   )}
                 </td>
                 <td className="whitespace-nowrap px-5 py-3">
-                  <Amount value={Number(txn.amount)} />
+                  <EditableAmount transactionId={txn.id} amount={Number(txn.amount)} batchId={batchId} />
                 </td>
                 <td className="whitespace-nowrap px-5 py-3">
                   {txn.category ? (
@@ -162,6 +163,97 @@ export function BatchTransactionsTable({
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/**
+ * Importe con edición a mano — pensado para comprobantes AFIP tipo C
+ * (Factura/Recibo/NC de monotributistas) que quedan en $0 porque AFIP no
+ * manda ese dato en el CSV, no hay nada que el parser pueda leer. Si el
+ * importe es $0 se marca con un aviso para que salte a la vista sin tener
+ * que ir fila por fila buscando cuáles faltan cargar.
+ */
+function EditableAmount({
+  transactionId,
+  amount,
+  batchId,
+}: {
+  transactionId: number;
+  amount: number;
+  batchId: number;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(String(Math.abs(amount)));
+  const [pending, startTransition] = useTransition();
+
+  function save() {
+    const parsed = Number(value.replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed < 0) return;
+    startTransition(async () => {
+      await updateTransactionAmountAction(transactionId, parsed, batchId);
+      setEditing(false);
+    });
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          autoFocus
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          className="w-28 rounded-lg border border-indigo-300 px-2 py-1 text-sm tabular-nums outline-none focus:ring-2 focus:ring-indigo-100"
+        />
+        <button
+          type="button"
+          disabled={pending}
+          onClick={save}
+          className="rounded-lg bg-indigo-600 px-2 py-1 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+        >
+          Guardar
+        </button>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => setEditing(false)}
+          className="rounded-lg px-2 py-1 text-xs text-slate-500 hover:bg-slate-100"
+        >
+          Cancelar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Amount value={amount} />
+      {amount === 0 && (
+        <span
+          className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+          title="Este comprobante llegó en $0 — probablemente la fuente original no trae el importe."
+        >
+          <IconAlertTriangle width={10} height={10} />
+          revisar
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          setValue(String(Math.abs(amount)));
+          setEditing(true);
+        }}
+        className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+      >
+        Editar
+      </button>
     </div>
   );
 }

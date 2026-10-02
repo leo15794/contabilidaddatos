@@ -287,3 +287,29 @@ export async function setTransactionsCategory(transactionIds: number[], category
     .set({ category })
     .where(inArray(transactions.id, transactionIds));
 }
+
+/**
+ * Corrige a mano el importe de un movimiento puntual — para los casos donde
+ * la fuente original no trae el número (ej. AFIP no manda "Imp. Total" para
+ * comprobantes tipo C de monotributistas: el dato directamente no está en el
+ * CSV, no hay nada que parsear). `absoluteAmount` se ingresa siempre en
+ * positivo (como figura en el comprobante); el signo lo decide la fuente
+ * (emitida = ingreso, recibida = egreso) salvo que sea una nota de crédito,
+ * que invierte el signo — mismo criterio que usa el parser de AFIP al
+ * importar (ver `src/lib/parsers/afip-csv.ts`).
+ */
+export async function updateTransactionAmount(transactionId: number, absoluteAmount: number): Promise<void> {
+  const [txn] = await db.select().from(transactions).where(eq(transactions.id, transactionId)).limit(1);
+  if (!txn) return;
+
+  const isCreditNote = /nota\s*de\s*cr[eé]dito/i.test(txn.description);
+  const baseSign =
+    txn.source === "afip_issued" ? 1 : txn.source === "afip_received" ? -1 : Math.sign(Number(txn.amount)) || -1;
+  const sign = isCreditNote ? -baseSign : baseSign;
+  const amount = Math.abs(absoluteAmount) * sign;
+
+  await db
+    .update(transactions)
+    .set({ amount: amount.toFixed(2) })
+    .where(eq(transactions.id, transactionId));
+}

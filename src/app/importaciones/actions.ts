@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { setTransactionsCategory } from "@/lib/queries";
+import { setTransactionsCategory, updateTransactionAmount } from "@/lib/queries";
 
 /**
  * Categoriza a mano un conjunto de movimientos (ej. "Gastos operativos") —
@@ -28,6 +28,23 @@ export async function uncategorizeTransactionsAction(transactionIds: number[], b
   if (transactionIds.length === 0) return;
 
   await setTransactionsCategory(transactionIds, null);
+
+  revalidatePath(`/importaciones/${batchId}`);
+  revalidatePath("/importaciones");
+  revalidatePath("/dashboard");
+  revalidatePath("/review");
+}
+
+/**
+ * Corrige a mano el importe de un movimiento (ej. comprobantes AFIP tipo C
+ * que quedaron en $0 porque el CSV de AFIP no trae ese dato). No vuelve a
+ * conciliar solo — si corresponde un match, hay que correrlo de nuevo desde
+ * el botón "Re-conciliar" del dashboard.
+ */
+export async function updateTransactionAmountAction(transactionId: number, absoluteAmount: number, batchId: number) {
+  if (!Number.isFinite(absoluteAmount) || absoluteAmount < 0) return;
+
+  await updateTransactionAmount(transactionId, absoluteAmount);
 
   revalidatePath(`/importaciones/${batchId}`);
   revalidatePath("/importaciones");
