@@ -75,6 +75,7 @@ export async function saveImport(
         currency: row.currency ?? "ARS",
         accountRef: row.accountRef || accountRef || null,
         counterparty: row.counterparty ?? null,
+        category: row.category ?? null,
         raw: row.raw,
       })),
     );

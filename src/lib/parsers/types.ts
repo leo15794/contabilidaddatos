@@ -8,6 +8,8 @@ export type ParsedRow = {
   counterparty?: string;
   /** Si el parser ya sabe a qué cuenta/titular corresponde esta fila puntual (ej. un resumen con varias tarjetas adicionales), pisa el accountRef general del batch. */
   accountRef?: string;
+  /** Si el parser ya detectó que esta fila es un cargo bancario sin contraparte real (ver `fee-categories.ts`), va directo categorizada y no necesita conciliación. */
+  category?: string | null;
   raw: Record<string, unknown>;
 };
 

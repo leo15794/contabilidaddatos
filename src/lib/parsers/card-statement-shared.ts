@@ -1,4 +1,5 @@
 import { ParsedRow, parseArDate } from "./types";
+import { DEFAULT_FEE_CATEGORY, detectFeeCategory } from "./fee-categories";
 
 /**
  * Forma común de "ya extraje un resumen de tarjeta Visa Business/Negocios
@@ -92,6 +93,10 @@ export function buildRowsFromExtraction(extraction: StatementExtraction): {
         amount: -Math.abs(c.importe),
         currency: "ARS",
         counterparty: c.descripcion,
+        // Conservador: un consumo de tarjeta normal NO se categoriza solo,
+        // salvo que la descripción matchee un cargo bancario conocido (ej.
+        // "COMIS.RENOVAC.ANUAL" de una tarjeta adicional) — ver fee-categories.ts.
+        category: detectFeeCategory(c.descripcion),
         raw: {
           cardNumber: ch.cardNumber,
           cardholder: ch.name,
@@ -111,6 +116,11 @@ export function buildRowsFromExtraction(extraction: StatementExtraction): {
       amount: -Math.abs(cargo.importe),
       currency: "ARS",
       counterparty: "Banco (cargo del resumen)",
+      // Los cargos generales del resumen (no atados a ninguna tarjeta) son,
+      // por definición, plata que cobra el banco directo — nunca van a tener
+      // una factura o transferencia con la que cruzar, así que van
+      // categorizados siempre, sin necesidad de que matcheen un patrón.
+      category: DEFAULT_FEE_CATEGORY,
       raw: { cargoDelResumen: true, descripcion: cargo.descripcion },
     });
   }

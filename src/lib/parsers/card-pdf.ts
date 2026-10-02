@@ -1,5 +1,6 @@
 import { PDFParse } from "pdf-parse";
 import { ParseResult, ParsedRow, parseArDate, parseArNumber } from "./types";
+import { detectFeeCategory } from "./fee-categories";
 
 /**
  * Parser BEST-EFFORT de resúmenes de tarjeta de crédito en PDF.
@@ -73,6 +74,9 @@ export async function parseCardPdf(
       description,
       amount,
       currency: "ARS",
+      // Cargos bancarios conocidos (IVA, comisiones, sellos, etc.) — ver
+      // fee-categories.ts. El resto sigue necesitando conciliación normal.
+      category: detectFeeCategory(description),
       raw: {
         line,
         installment: installmentMatch
