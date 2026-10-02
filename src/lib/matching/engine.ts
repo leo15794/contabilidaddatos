@@ -202,17 +202,25 @@ async function runFuzzySuggestions(pool: Txn[], opts: Required<EngineOptions>) {
       if (Math.sign(amountA) !== Math.sign(amountB)) continue;
 
       const pctDiff = Math.abs(Math.abs(amountA) - Math.abs(amountB)) / Math.max(Math.abs(amountA), 0.01);
-      if (pctDiff > opts.fuzzyAmountTolerancePct * 5) continue; // hasta 10% de diferencia
+      if (pctDiff > opts.fuzzyAmountTolerancePct * 2) continue; // hasta 4% de diferencia (antes 10%, dejaba pasar importes "parecidos" sin ninguna otra relación)
       if (daysBetween(a.date, b.date) > wideWindow) continue;
 
       const textScore = jaccardSimilarity(
         `${a.description} ${a.counterparty ?? ""}`,
         `${b.description} ${b.counterparty ?? ""}`,
       );
-      const amountScore = 1 - Math.min(pctDiff / 0.1, 1);
+      // Un importe parecido por sí solo no alcanza para sugerir un match: con
+      // textScore 0 (ninguna palabra en común entre descripción/contraparte)
+      // dos movimientos de cualquier billetera del mundo pueden "coincidir" en
+      // monto por pura casualidad (bug real reportado: factura AFIP de BOLDT
+      // vs. consumo de tarjeta en YPF, mismo importe aproximado, cero relación).
+      // Se exige evidencia de texto real antes de mirar siquiera el importe.
+      if (textScore <= 0) continue;
+
+      const amountScore = 1 - Math.min(pctDiff / (opts.fuzzyAmountTolerancePct * 2), 1);
       const score = textScore * 0.6 + amountScore * 0.4;
 
-      if (score > 0.25 && (!best || score > best.score)) {
+      if (score > 0.35 && (!best || score > best.score)) {
         best = { txn: b, score, amountDiff: Math.abs(Math.abs(amountA) - Math.abs(amountB)) };
       }
     }
