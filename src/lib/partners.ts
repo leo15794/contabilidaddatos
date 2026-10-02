@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { partners, partnerBalances, transactions } from "@/db/schema";
 
@@ -79,7 +79,8 @@ export async function getPartnerSpend(
       and(
         eq(transactions.source, "card"),
         belongsToPartner(partnerName),
-        sql`${transactions.date} >= ${from} and ${transactions.date} < ${to}`,
+        gte(transactions.date, from),
+        lt(transactions.date, to),
       ),
     );
   return { total: Number(row?.total ?? 0), count: row?.count ?? 0 };
@@ -115,7 +116,8 @@ export async function getPartnerTransactions(partnerName: string, from: Date, to
       and(
         eq(transactions.source, "card"),
         belongsToPartner(partnerName),
-        sql`${transactions.date} >= ${from} and ${transactions.date} < ${to}`,
+        gte(transactions.date, from),
+        lt(transactions.date, to),
       ),
     )
     .orderBy(desc(transactions.date));
@@ -132,9 +134,7 @@ export async function getPartnerMonthlyHistory(partnerName: string, monthsBack =
       total: sql<string>`sum(abs(${transactions.amount}))`,
     })
     .from(transactions)
-    .where(
-      and(eq(transactions.source, "card"), belongsToPartner(partnerName), sql`${transactions.date} >= ${since}`),
-    )
+    .where(and(eq(transactions.source, "card"), belongsToPartner(partnerName), gte(transactions.date, since)))
     .groupBy(sql`1`)
     .orderBy(sql`1`);
 

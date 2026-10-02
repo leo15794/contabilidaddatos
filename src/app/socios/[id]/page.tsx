@@ -10,6 +10,7 @@ import {
   getPartnerSpend,
   getPartnerTransactions,
   monthKeyToDate,
+  startOfMonth,
 } from "@/lib/partners";
 import { Card, CardHeader, Amount, EmptyState } from "@/components/ui";
 import { IconArrowLeft, IconInbox } from "@/components/icons";
@@ -35,7 +36,7 @@ export default async function PartnerDetailPage({
   const partner = await getPartner(partnerId);
   if (!partner) notFound();
 
-  const selectedMonth = monthParam ? monthKeyToDate(monthParam) : new Date(new Date().setDate(1));
+  const selectedMonth = monthParam ? monthKeyToDate(monthParam) : startOfMonth(new Date());
   const monthKey = dateToMonthKey(selectedMonth);
   const monthEnd = addMonths(selectedMonth, 1);
   const prevMonthKey = dateToMonthKey(addMonths(selectedMonth, -1));
