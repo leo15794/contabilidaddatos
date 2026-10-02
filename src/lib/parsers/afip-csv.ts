@@ -69,9 +69,23 @@ export function parseAfipCsv(
         : findColumn(headers, ["Denominacion Emisor"]),
     moneda: findColumn(headers, ["Moneda"]),
     total: findColumn(headers, ["Imp. Total", "Imp Total", "Importe Total"]),
+    // El export "detallado" de AFIP (el que trae el desglose de IVA por
+    // alícuota) NO tiene ninguna columna de total — hay que sumarla. Para un
+    // comprobante "C" (monotributista, sin IVA) toda la plata cae en "Neto No
+    // Gravado", así que si solo miramos "Imp. Total" (que en este formato ni
+    // existe) el importe queda en $0. Si encontramos alguna de estas columnas,
+    // el total se calcula sumándolas en vez de buscar una columna de total.
+    netoGravadoTotal: findColumn(headers, ["Neto Gravado Total"]),
+    netoNoGravado: findColumn(headers, ["Neto No Gravado"]),
+    opExentas: findColumn(headers, ["Op. Exentas", "Imp. Op. Exentas"]),
+    otrosTributos: findColumn(headers, ["Otros Tributos", "Imp. Trib."]),
+    totalIva: findColumn(headers, ["Total IVA", "Imp. IVA"]),
   };
 
-  if (!col.fecha || !col.total) {
+  const desglose = [col.netoGravadoTotal, col.netoNoGravado, col.opExentas, col.otrosTributos, col.totalIva];
+  const tieneDesglose = desglose.some(Boolean);
+
+  if (!col.fecha || (!col.total && !tieneDesglose)) {
     warnings.push(
       "No se pudieron identificar las columnas de fecha/importe total. Revisá que sea el CSV exportado desde AFIP > Mis Comprobantes.",
     );
@@ -88,7 +102,12 @@ export function parseAfipCsv(
       continue;
     }
 
-    let amount = col.total ? parseArNumber(record[col.total]) : 0;
+    let amount: number;
+    if (tieneDesglose) {
+      amount = desglose.reduce((sum, colName) => sum + (colName ? parseArNumber(record[colName]) : 0), 0);
+    } else {
+      amount = col.total ? parseArNumber(record[col.total]) : 0;
+    }
     const tipo = col.tipo ? record[col.tipo] ?? "" : "";
     const isCreditNote = /nota\s*de\s*cr[eé]dito/i.test(tipo);
 
