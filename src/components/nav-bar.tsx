@@ -35,16 +35,16 @@ export function NavBar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-8">
+    <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/85 backdrop-blur">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
+        <div className="flex items-center gap-10">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-bold text-white shadow-sm">
+            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-gradient-to-br from-indigo-600 to-violet-500 text-[13px] font-extrabold text-white shadow-sm">
               2D
             </span>
             <div className="leading-tight">
-              <p className="text-sm font-semibold text-slate-900">2 Datos y Mercadeo</p>
-              <p className="text-[11px] text-slate-400">Conciliación contable</p>
+              <p className="text-[13.5px] font-bold text-slate-900">2 Datos y Mercadeo</p>
+              <p className="text-[10.5px] text-slate-400">Conciliación contable</p>
             </div>
           </div>
           <nav className="flex gap-1">
@@ -55,9 +55,9 @@ export function NavBar() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[13.5px] font-semibold transition-colors ${
                     active
-                      ? "bg-indigo-50 text-indigo-700"
+                      ? "bg-indigo-50 text-indigo-600"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                   }`}
                 >

@@ -53,65 +53,70 @@ export default async function DashboardPage({
   return (
     <div className="flex min-h-screen flex-col">
       <NavBar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
-            <p className="text-sm text-slate-500">Estado general de la conciliación</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <form className="flex items-end gap-2" action="/dashboard" method="GET">
-              <label className="flex flex-col text-xs text-slate-500">
-                Desde
-                <input
-                  type="date"
-                  name="from"
-                  defaultValue={fromStr ?? ""}
-                  className="mt-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                />
-              </label>
-              <label className="flex flex-col text-xs text-slate-500">
-                Hasta
-                <input
-                  type="date"
-                  name="to"
-                  defaultValue={toStr ?? ""}
-                  className="mt-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                />
-              </label>
-              <button
-                type="submit"
-                className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
-              >
-                Filtrar
-              </button>
-              {hasFilter && (
-                <a
-                  href="/dashboard"
-                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-slate-100"
+
+      <div className="bg-gradient-to-br from-indigo-50 via-violet-50/70 to-slate-50 px-4 pb-8 pt-10">
+        <div className="mx-auto w-full max-w-5xl">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-[32px] font-extrabold tracking-tight text-slate-900">Dashboard</h1>
+              <p className="mt-1 text-sm text-slate-500">Estado general de la conciliación</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <form className="flex items-end gap-2" action="/dashboard" method="GET">
+                <label className="flex flex-col text-xs text-slate-500">
+                  Desde
+                  <input
+                    type="date"
+                    name="from"
+                    defaultValue={fromStr ?? ""}
+                    className="mt-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  />
+                </label>
+                <label className="flex flex-col text-xs text-slate-500">
+                  Hasta
+                  <input
+                    type="date"
+                    name="to"
+                    defaultValue={toStr ?? ""}
+                    className="mt-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  className="rounded-xl bg-indigo-600 px-3.5 py-1.5 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgba(79,70,229,.55)] hover:bg-indigo-700"
                 >
-                  Limpiar
-                </a>
-              )}
-            </form>
-            <ReconcileButton />
+                  Filtrar
+                </button>
+                {hasFilter && (
+                  <a
+                    href="/dashboard"
+                    className="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-500 hover:bg-white/70"
+                  >
+                    Limpiar
+                  </a>
+                )}
+              </form>
+              <ReconcileButton />
+            </div>
           </div>
+
+          {hasFilter && (
+            <p className="mt-4 text-xs text-slate-500">
+              {datesSwapped && (
+                <span className="mr-1 font-medium text-amber-600">
+                  &quot;Desde&quot; estaba después de &quot;Hasta&quot;, así que se invirtieron solos —
+                </span>
+              )}
+              Mostrando movimientos {from ? `desde ${from.toLocaleDateString("es-AR")}` : ""}
+              {from && to ? " " : ""}
+              {to ? `hasta ${to.toLocaleDateString("es-AR")}` : ""}. &quot;Importaciones recientes&quot; sigue
+              mostrando los últimos archivos subidos en general, sin filtrar.
+            </p>
+          )}
         </div>
+      </div>
 
-        {hasFilter && (
-          <p className="-mt-3 mb-6 text-xs text-slate-500">
-            {datesSwapped && (
-              <span className="mr-1 font-medium text-amber-600">
-                "Desde" estaba después de "Hasta", así que se invirtieron solos —
-              </span>
-            )}
-            Mostrando movimientos {from ? `desde ${from.toLocaleDateString("es-AR")}` : ""}
-            {from && to ? " " : ""}
-            {to ? `hasta ${to.toLocaleDateString("es-AR")}` : ""}. "Importaciones recientes" sigue
-            mostrando los últimos archivos subidos en general, sin filtrar.
-          </p>
-        )}
-
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
         <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <Stat
             label="Ingresos"
@@ -128,7 +133,7 @@ export default async function DashboardPage({
           <Stat
             label="Conciliado"
             value={`${summary.conciliadoPct}%`}
-            tone="brand"
+            tone="dark"
             icon={<IconCheckCircle width={17} height={17} />}
           />
           <Stat
@@ -198,7 +203,7 @@ export default async function DashboardPage({
               action={
                 <a
                   href="/import"
-                  className="mt-2 inline-flex rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                  className="mt-2 inline-flex rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_8px_20px_-8px_rgba(79,70,229,.5)] hover:bg-indigo-700"
                 >
                   Empezar a importar
                 </a>
@@ -242,9 +247,24 @@ function Stat({
 }: {
   label: string;
   value: string;
-  tone: "positive" | "negative" | "brand" | "neutral" | "warning" | "violet";
+  tone: "positive" | "negative" | "brand" | "neutral" | "warning" | "violet" | "dark";
   icon: React.ReactNode;
 }) {
+  // "dark" es el tile destacado (hoy solo "Conciliado") — el número que más
+  // importa de un vistazo se resalta con una card oscura en vez de competir
+  // por atención con el resto, en vez de un tono más de la misma grilla clara.
+  if (tone === "dark") {
+    return (
+      <div className="rounded-[20px] bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-3.5 shadow-[0_14px_32px_-16px_rgba(15,23,42,.45)]">
+        <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-violet-300">
+          {icon}
+        </div>
+        <p className="text-xs text-slate-400">{label}</p>
+        <p className="mt-0.5 text-lg font-bold tabular-nums text-white">{value}</p>
+      </div>
+    );
+  }
+
   const styles = {
     positive: { text: "text-emerald-600", bg: "bg-emerald-50" },
     negative: { text: "text-rose-600", bg: "bg-rose-50" },
@@ -255,12 +275,12 @@ function Stat({
   }[tone];
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="rounded-[20px] border border-slate-100 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_10px_28px_-16px_rgba(15,23,42,.14)] transition-shadow hover:shadow-[0_1px_2px_rgba(15,23,42,.04),0_14px_32px_-14px_rgba(15,23,42,.18)]">
       <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-lg ${styles.bg} ${styles.text}`}>
         {icon}
       </div>
       <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-semibold tabular-nums ${styles.text}`}>{value}</p>
+      <p className={`mt-0.5 text-lg font-bold tabular-nums ${styles.text}`}>{value}</p>
     </div>
   );
 }

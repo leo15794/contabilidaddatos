@@ -163,6 +163,15 @@ export function IconTrash(props: IconProps) {
   );
 }
 
+export function IconWallet(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" />
+      <path d="M21 12h-4a2 2 0 0 0 0 4h4v-4Z" />
+    </svg>
+  );
+}
+
 export function IconLock(props: IconProps) {
   return (
     <svg {...base(props)}>
