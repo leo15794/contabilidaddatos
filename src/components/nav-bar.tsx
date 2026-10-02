@@ -12,6 +12,7 @@ import {
   IconMessageCircle,
   IconLogOut,
   IconArrowUpRight,
+  IconUsers,
 } from "./icons";
 
 const LINKS = [
@@ -20,6 +21,7 @@ const LINKS = [
   { href: "/importaciones", label: "Importaciones", icon: IconInbox },
   { href: "/review", label: "Revisión", icon: IconCheckCircle },
   { href: "/conciliados", label: "Conciliados", icon: IconFileText },
+  { href: "/socios", label: "Socios", icon: IconUsers },
 ];
 
 // Link al dashboard de OpenWA (el gateway de WhatsApp self-hosted, ver

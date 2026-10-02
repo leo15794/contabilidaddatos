@@ -9,6 +9,7 @@ import {
   jsonb,
   index,
   primaryKey,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // -----------------------------------------------------------------------
@@ -127,4 +128,44 @@ export const matchItems = pgTable(
       .references(() => transactions.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.matchId, t.transactionId] })],
+);
+
+/**
+ * Un socio para el dashboard de gastos por socio (ej. "Patricio Moloy"). Hoy
+ * sus gastos se detectan automático por nombre: cuando un resumen de tarjeta
+ * trae un titular adicional (`raw->>'cardholder'`, ver
+ * `card-statement-shared.ts`), se le atribuye al socio cuyo `name` coincide
+ * (sin importar mayúsculas/espacios — ver `normalizePartnerName` en
+ * `src/lib/partners.ts`). No hace falta mapear nada a mano.
+ *
+ * `phone` todavía no se usa: es para cuando el agente de WhatsApp para
+ * tickets esté conectado (ver plan de OpenWA) — el número que manda la foto
+ * va a identificar de qué socio es ese gasto, igual que el nombre del
+ * titular identifica los gastos de tarjeta.
+ */
+export const partners = pgTable("partners", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Saldo mensual asignado a mano a un socio (ver /socios). Los gastos de ese mes se van restando de acá. */
+export const partnerBalances = pgTable(
+  "partner_balances",
+  {
+    id: serial("id").primaryKey(),
+    partnerId: integer("partner_id")
+      .notNull()
+      .references(() => partners.id, { onDelete: "cascade" }),
+    // Primer día del mes al que corresponde el saldo (ej. 2026-10-01).
+    month: timestamp("month", { withTimezone: false }).notNull(),
+    amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("partner_balances_partner_idx").on(t.partnerId),
+    uniqueIndex("partner_balances_partner_month_idx").on(t.partnerId, t.month),
+  ],
 );
