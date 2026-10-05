@@ -1,7 +1,7 @@
 import { NavBar } from "@/components/nav-bar";
 import { getDashboardSummary, getCategorizedBreakdown } from "@/lib/queries";
 import { ReconcileButton } from "./reconcile-button";
-import { Card, CardHeader, SourceBadge, Amount, EmptyState } from "@/components/ui";
+import { Card, CardHeader, SourceBadge, Amount, EmptyState, StatCard } from "@/components/ui";
 import {
   IconArrowUpRight,
   IconArrowDownRight,
@@ -14,6 +14,11 @@ import {
 export const dynamic = "force-dynamic";
 
 const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+// Para las stat cards usamos montos sin centavos — son números grandes y los
+// centavos no aportan nada de un vistazo, solo hacen que el valor sea más
+// largo y más fácil de que se corte en una card chica. El monto exacto (con
+// centavos) queda igual disponible al pasar el mouse por encima (title).
+const fmtCompact = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 
 export default async function DashboardPage({
   searchParams,
@@ -108,32 +113,21 @@ export default async function DashboardPage({
       </div>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          <Stat
-            label="Ingresos"
-            value={fmt.format(summary.ingresos)}
-            tone="positive"
-            icon={<IconArrowUpRight width={17} height={17} />}
-          />
-          <Stat
-            label="Egresos"
-            value={fmt.format(summary.egresos)}
-            tone="negative"
-            icon={<IconArrowDownRight width={17} height={17} />}
-          />
-          <Stat
+        <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <FlowCard ingresos={summary.ingresos} egresos={summary.egresos} />
+          <StatCard
             label="Conciliado"
             value={`${summary.conciliadoPct}%`}
-            tone="dark"
+            tone="highlight"
             icon={<IconCheckCircle width={17} height={17} />}
           />
-          <Stat
+          <StatCard
             label="Pendientes de revisar"
             value={String(summary.pendingReviewCount)}
             tone={summary.pendingReviewCount > 0 ? "warning" : "neutral"}
             icon={<IconClock width={17} height={17} />}
           />
-          <Stat
+          <StatCard
             label="Gastos (tickets) sin factura"
             value={String(summary.ticketsSinFactura)}
             tone={summary.ticketsSinFactura > 0 ? "warning" : "neutral"}
@@ -192,8 +186,12 @@ export default async function DashboardPage({
                   <tr key={row.category} className="border-t border-slate-100 hover:bg-slate-50/80">
                     <td className="px-5 py-3 text-slate-700">{row.category}</td>
                     <td className="px-5 py-3 text-slate-600">{row.count}</td>
-                    <td className="px-5 py-3">
-                      <Amount value={row.total} />
+                    {/* Monto en valor absoluto (ver getCategorizedBreakdown) — no es un
+                        ingreso ni un egreso real, es la magnitud de lo categorizado, así
+                        que va en gris neutro y no con el verde/rojo de <Amount> (que
+                        confundiría "categorizado" con "plata que entró"). */}
+                    <td className="whitespace-nowrap px-5 py-3 font-medium tabular-nums text-slate-700">
+                      {fmt.format(row.total)}
                     </td>
                   </tr>
                 ))}
@@ -206,48 +204,30 @@ export default async function DashboardPage({
   );
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-  icon,
-}: {
-  label: string;
-  value: string;
-  tone: "positive" | "negative" | "brand" | "neutral" | "warning" | "violet" | "dark";
-  icon: React.ReactNode;
-}) {
-  // "dark" es el tile destacado (hoy solo "Conciliado") — el número que más
-  // importa de un vistazo se resalta con una card oscura en vez de competir
-  // por atención con el resto, en vez de un tono más de la misma grilla clara.
-  if (tone === "dark") {
-    return (
-      <div className="rounded-[20px] bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-3.5 shadow-[0_14px_32px_-16px_rgba(15,23,42,.45)]">
-        <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-violet-300">
-          {icon}
-        </div>
-        <p className="text-xs text-slate-400">{label}</p>
-        <p className="mt-0.5 text-lg font-bold tabular-nums text-white">{value}</p>
-      </div>
-    );
-  }
-
-  const styles = {
-    positive: { text: "text-emerald-600", bg: "bg-emerald-50" },
-    negative: { text: "text-rose-600", bg: "bg-rose-50" },
-    brand: { text: "text-indigo-600", bg: "bg-indigo-50" },
-    neutral: { text: "text-slate-700", bg: "bg-slate-100" },
-    warning: { text: "text-amber-600", bg: "bg-amber-50" },
-    violet: { text: "text-violet-600", bg: "bg-violet-50" },
-  }[tone];
-
+// Ingresos y egresos combinados en una sola card de dos líneas en vez de dos
+// tiles separados — además de liberar un lugar en la grilla, evita que un
+// monto grande (varios dígitos) tenga que competir por el ancho completo de
+// una card angosta y se corte.
+function FlowCard({ ingresos, egresos }: { ingresos: number; egresos: number }) {
   return (
-    <div className="rounded-[20px] border border-slate-100 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_10px_28px_-16px_rgba(15,23,42,.14)] transition-shadow hover:shadow-[0_1px_2px_rgba(15,23,42,.04),0_14px_32px_-14px_rgba(15,23,42,.18)]">
-      <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-lg ${styles.bg} ${styles.text}`}>
-        {icon}
+    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_10px_28px_-16px_rgba(15,23,42,.14)] transition-shadow hover:shadow-[0_1px_2px_rgba(15,23,42,.04),0_14px_32px_-14px_rgba(15,23,42,.18)]">
+      <p className="text-xs text-slate-500">Flujo del período</p>
+      <div className="mt-1.5 space-y-1">
+        <p
+          className="flex items-center gap-1 truncate text-sm font-bold tabular-nums text-emerald-600"
+          title={fmt.format(ingresos)}
+        >
+          <IconArrowUpRight width={13} height={13} className="shrink-0" />
+          {fmtCompact.format(ingresos)}
+        </p>
+        <p
+          className="flex items-center gap-1 truncate text-sm font-bold tabular-nums text-rose-600"
+          title={fmt.format(egresos)}
+        >
+          <IconArrowDownRight width={13} height={13} className="shrink-0" />
+          {fmtCompact.format(egresos)}
+        </p>
       </div>
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-bold tabular-nums ${styles.text}`}>{value}</p>
     </div>
   );
 }

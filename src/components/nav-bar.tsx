@@ -38,18 +38,21 @@ export function NavBar() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/85 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
-        <div className="flex items-center gap-10">
-          <div className="flex items-center gap-2.5">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-5 py-3.5">
+        <div className="flex min-w-0 items-center gap-6">
+          <div className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-gradient-to-br from-indigo-600 to-violet-500 text-[13px] font-extrabold text-white shadow-sm">
               2D
             </span>
-            <div className="leading-tight">
+            <div className="hidden leading-tight sm:block">
               <p className="text-[13.5px] font-bold text-slate-900">2 Datos y Mercadeo</p>
               <p className="text-[10.5px] text-slate-400">Conciliación contable</p>
             </div>
           </div>
-          <nav className="flex gap-1">
+          {/* overflow-x-auto como red de seguridad: si la ventana es angosta,
+              el menú scrollea horizontal en vez de partir una etiqueta en dos
+              líneas (lo que pasaba con "Cuenta corriente" antes). */}
+          <nav className="flex min-w-0 gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {LINKS.map((l) => {
               const active = pathname === l.href || pathname.startsWith(l.href + "/");
               const Icon = l.icon;
@@ -57,20 +60,20 @@ export function NavBar() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={`flex items-center gap-1.5 rounded-[10px] px-3.5 py-2 text-[13.5px] font-semibold transition-colors ${
+                  className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] px-3 py-2 text-[13.5px] font-semibold transition-colors ${
                     active
                       ? "bg-indigo-50 text-indigo-600"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
                   }`}
                 >
-                  <Icon width={15} height={15} />
+                  <Icon width={15} height={15} className="shrink-0" />
                   {l.label}
                 </Link>
               );
             })}
           </nav>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           {OPENWA_URL && (
             <a
               href={OPENWA_URL}

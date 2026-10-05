@@ -7,8 +7,8 @@ import {
   getCuentaCorrienteDetalle,
   type Source,
 } from "@/lib/cuenta-corriente";
-import { Card, CardHeader, SourceBadge } from "@/components/ui";
-import { IconArrowLeft } from "@/components/icons";
+import { Card, CardHeader, SourceBadge, StatCard } from "@/components/ui";
+import { IconArrowLeft, IconFileText, IconCheckCircle, IconScale, IconClock } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -62,14 +62,30 @@ export default async function CuentaCorrienteDetallePage({
         </div>
 
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <MiniStat label="Facturado" value={fmt.format(fila.facturado)} tone="neutral" />
-          <MiniStat label="Conciliado" value={fmt.format(fila.conciliado)} tone="positive" />
-          <MiniStat
+          <StatCard
+            label="Facturado"
+            value={fmt.format(fila.facturado)}
+            tone="neutral"
+            icon={<IconFileText width={17} height={17} />}
+          />
+          <StatCard
+            label="Conciliado"
+            value={fmt.format(fila.conciliado)}
+            tone="success"
+            icon={<IconCheckCircle width={17} height={17} />}
+          />
+          <StatCard
             label="Saldo"
             value={fmt.format(fila.saldo)}
-            tone={fila.saldo > 0.5 ? "warning" : "positive"}
+            tone={fila.saldo > 0.5 ? "warning" : "success"}
+            icon={<IconScale width={17} height={17} />}
           />
-          <MiniStat label="Pendientes" value={`${fila.cantidadPendientes} / ${fila.cantidadFacturas}`} tone="neutral" />
+          <StatCard
+            label="Pendientes"
+            value={`${fila.cantidadPendientes} / ${fila.cantidadFacturas}`}
+            tone={fila.cantidadPendientes > 0 ? "warning" : "neutral"}
+            icon={<IconClock width={17} height={17} />}
+          />
         </div>
 
         <Card>
@@ -116,17 +132,6 @@ export default async function CuentaCorrienteDetallePage({
           </table>
         </Card>
       </main>
-    </div>
-  );
-}
-
-function MiniStat({ label, value, tone }: { label: string; value: string; tone: "neutral" | "positive" | "warning" }) {
-  const toneClass =
-    tone === "positive" ? "text-emerald-600" : tone === "warning" ? "text-rose-600" : "text-slate-900";
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,.04)]">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-1 text-lg font-bold tabular-nums ${toneClass}`}>{value}</p>
     </div>
   );
 }

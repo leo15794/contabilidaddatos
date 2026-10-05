@@ -63,6 +63,65 @@ export function Button({
   );
 }
 
+// Paleta única para todas las "stat cards" de la app (Dashboard, Importaciones,
+// Cuenta corriente): antes cada pantalla tenía su propio componente con su
+// propia combinación de colores (violeta, celeste, verde...) compitiendo
+// entre sí sin ningún criterio. Ahora el color es siempre semántico — gris
+// neutro para informativo, ámbar solo cuando hay algo para revisar, verde/rojo
+// solo para plata a favor/en contra — y "highlight" queda reservado para el
+// UNICO número más importante de cada pantalla (ej. % Conciliado).
+type StatTone = "neutral" | "success" | "danger" | "warning" | "highlight";
+
+const STAT_TONE_STYLES: Record<Exclude<StatTone, "highlight">, { bg: string; icon: string; value: string }> = {
+  neutral: { bg: "bg-slate-100", icon: "text-slate-500", value: "text-slate-900" },
+  success: { bg: "bg-emerald-50", icon: "text-emerald-600", value: "text-emerald-600" },
+  danger: { bg: "bg-rose-50", icon: "text-rose-600", value: "text-rose-600" },
+  warning: { bg: "bg-amber-50", icon: "text-amber-600", value: "text-amber-600" },
+};
+
+export function StatCard({
+  label,
+  value,
+  icon,
+  tone = "neutral",
+  title,
+}: {
+  label: string;
+  value: ReactNode;
+  icon?: ReactNode;
+  tone?: StatTone;
+  title?: string;
+}) {
+  if (tone === "highlight") {
+    return (
+      <div className="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-3.5 shadow-[0_14px_32px_-16px_rgba(15,23,42,.45)]">
+        {icon && (
+          <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-violet-300">
+            {icon}
+          </div>
+        )}
+        <p className="text-xs text-slate-400">{label}</p>
+        <p className="mt-0.5 truncate text-lg font-bold tabular-nums text-white" title={title}>
+          {value}
+        </p>
+      </div>
+    );
+  }
+
+  const s = STAT_TONE_STYLES[tone];
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3.5 shadow-[0_1px_2px_rgba(15,23,42,.04),0_10px_28px_-16px_rgba(15,23,42,.14)] transition-shadow hover:shadow-[0_1px_2px_rgba(15,23,42,.04),0_14px_32px_-14px_rgba(15,23,42,.18)]">
+      {icon && (
+        <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-lg ${s.bg} ${s.icon}`}>{icon}</div>
+      )}
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className={`mt-0.5 truncate text-lg font-bold tabular-nums ${s.value}`} title={title}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 export const SOURCE_STYLES: Record<string, { label: string; dot: string }> = {
   bank: { label: "Banco", dot: "bg-blue-500" },
   card: { label: "Tarjeta", dot: "bg-violet-500" },

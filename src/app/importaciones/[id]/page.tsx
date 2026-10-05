@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NavBar } from "@/components/nav-bar";
 import { getBatchDetail } from "@/lib/queries";
-import { Card, CardHeader, SourceBadge } from "@/components/ui";
-import { IconArrowLeft } from "@/components/icons";
+import { Card, CardHeader, SourceBadge, StatCard } from "@/components/ui";
+import { IconArrowLeft, IconInbox, IconCheckCircle, IconClock, IconFileText } from "@/components/icons";
 import { BatchTransactionsTable } from "../batch-transactions-table";
 
 export const dynamic = "force-dynamic";
@@ -50,11 +50,26 @@ export default async function ImportBatchDetailPage({
         </div>
 
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
-          <MiniStat label="Movimientos" value={String(stats.total)} tone="neutral" />
-          <MiniStat label="Conciliados" value={String(stats.conciliados)} tone="positive" />
-          <MiniStat label="Pendientes de revisar" value={String(stats.pendientes)} tone="warning" />
-          <MiniStat label="Sin conciliar" value={String(stats.sinConciliar)} tone="neutral" />
-          <MiniStat label="Categorizados" value={String(stats.categorizados)} tone="brand" />
+          <StatCard label="Movimientos" value={String(stats.total)} tone="neutral" icon={<IconInbox width={17} height={17} />} />
+          <StatCard
+            label="Conciliados"
+            value={String(stats.conciliados)}
+            tone="success"
+            icon={<IconCheckCircle width={17} height={17} />}
+          />
+          <StatCard
+            label="Pendientes de revisar"
+            value={String(stats.pendientes)}
+            tone={stats.pendientes > 0 ? "warning" : "neutral"}
+            icon={<IconClock width={17} height={17} />}
+          />
+          <StatCard label="Sin conciliar" value={String(stats.sinConciliar)} tone="neutral" icon={<IconInbox width={17} height={17} />} />
+          <StatCard
+            label="Categorizados"
+            value={String(stats.categorizados)}
+            tone="neutral"
+            icon={<IconFileText width={17} height={17} />}
+          />
         </div>
 
         <Card>
@@ -69,30 +84,6 @@ export default async function ImportBatchDetailPage({
           <BatchTransactionsTable batchId={batch.id} batchAccountRef={batch.accountRef} rows={rows} />
         </Card>
       </main>
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "positive" | "neutral" | "warning" | "brand";
-}) {
-  const styles = {
-    positive: { text: "text-emerald-600", bg: "bg-emerald-50" },
-    neutral: { text: "text-slate-700", bg: "bg-slate-100" },
-    warning: { text: "text-amber-600", bg: "bg-amber-50" },
-    brand: { text: "text-violet-600", bg: "bg-violet-50" },
-  }[tone];
-
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className={`mt-0.5 text-lg font-semibold tabular-nums ${styles.text}`}>{value}</p>
     </div>
   );
 }
