@@ -52,6 +52,25 @@ const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[] }[] = [
     category: "Transferencias entre cuentas propias",
     patterns: [/\bmismo\b/i], // "MISMO TIT", "CCDO MISMO": movimientos entre cuentas del mismo titular
   },
+  {
+    category: "Movimientos de fondos / inversiones propias",
+    patterns: [
+      /liq\.?\s*susc/i, // "10 Liq.Susc ...": suscripción a un fondo común de inversión (plata que entra al fondo)
+      /sol\.?\s*resc/i, // "10 Sol.Resc ...": rescate del fondo (la plata vuelve a la cuenta)
+      /rescate\s*fondo/i,
+      /fondo\s*de\s*inversi/i,
+      /plazo\s*fijo/i, // constitución/vencimiento de un plazo fijo propio
+    ], // todos son movimientos de la MISMA plata entre la cuenta y un instrumento propio (FCI, plazo fijo) — no hay contraparte real para cruzar
+  },
+  {
+    // Distinto de "Impuestos y comisiones bancarias" a propósito: esto SÍ es
+    // un pago a un tercero (un profesional), no un cargo interno del banco —
+    // se categoriza aparte para no esconderlo como si fuera una comisión.
+    // Si en algún momento llega la factura de ese profesional, hay que
+    // sacarle la categoría a mano para que vuelva a conciliar contra ella.
+    category: "Honorarios",
+    patterns: [/pago\s*honorarios/i, /\bhonorarios\b/i],
+  },
 ];
 
 type MatchableTxn = { source: string; description: string };

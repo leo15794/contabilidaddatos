@@ -49,6 +49,14 @@ const GROUPS = [
     category: "Transferencias entre cuentas propias",
     patterns: [/\bmismo\b/i],
   },
+  {
+    category: "Movimientos de fondos / inversiones propias",
+    patterns: [/liq\.?\s*susc/i, /sol\.?\s*resc/i, /rescate\s*fondo/i, /fondo\s*de\s*inversi/i, /plazo\s*fijo/i],
+  },
+  {
+    category: "Honorarios",
+    patterns: [/pago\s*honorarios/i, /\bhonorarios\b/i],
+  },
 ];
 
 function detectCategory(description) {
