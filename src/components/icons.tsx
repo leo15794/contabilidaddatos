@@ -180,3 +180,11 @@ export function IconLock(props: IconProps) {
     </svg>
   );
 }
+
+export function IconScale(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3v18M5 7h14M5 7 2 13a3 3 0 0 0 6 0L5 7ZM19 7l-3 6a3 3 0 0 0 6 0l-3-6ZM7 21h10" />
+    </svg>
+  );
+}

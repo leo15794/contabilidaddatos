@@ -13,6 +13,7 @@ import {
   IconLogOut,
   IconArrowUpRight,
   IconUsers,
+  IconScale,
 } from "./icons";
 
 const LINKS = [
@@ -21,6 +22,7 @@ const LINKS = [
   { href: "/importaciones", label: "Importaciones", icon: IconInbox },
   { href: "/review", label: "Revisión", icon: IconCheckCircle },
   { href: "/conciliados", label: "Conciliados", icon: IconFileText },
+  { href: "/cuenta-corriente", label: "Cuenta corriente", icon: IconScale },
   { href: "/socios", label: "Socios", icon: IconUsers },
 ];
 
