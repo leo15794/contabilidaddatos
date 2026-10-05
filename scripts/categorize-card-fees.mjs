@@ -3,8 +3,7 @@
 //   DATABASE_URL="<la de Neon>" node scripts/categorize-card-fees.mjs
 //     -> solo MUESTRA qué movimientos marcaría (no toca la base)
 //   DATABASE_URL="<la de Neon>" node scripts/categorize-card-fees.mjs --apply
-//     -> aplica la categoría de verdad
-//   Opcional: --category "Otro nombre" (default: "Gastos operativos")
+//     -> aplica las categorías de verdad
 //
 // Categoriza de una sola pasada los cargos típicos que el banco cobra DIRECTO
 // en el resumen de tarjeta (IVA, comisiones, sellos, intereses, etc.) — nunca
@@ -13,9 +12,18 @@
 // el mismo campo `category` que usa el botón manual de /importaciones, así
 // que lo que haga este script se ve y se puede deshacer desde ahí también.
 //
+// Agrupado por tipo (impuestos/comisiones vs. intereses de financiación) en
+// vez de un único "Gastos operativos" genérico — así el desglose del
+// Dashboard sirve para algo. Lo que SÍ queda en "Gastos operativos" es el
+// fallback: cargos generales del resumen que el parser ya sabe que son del
+// banco (`raw.cargoDelResumen`) pero cuya descripción no matchea ninguno de
+// los patrones específicos de abajo.
+//
 // Solo toca movimientos de tarjeta (source='card') que todavía no tengan
 // categoría — correrlo de nuevo más adelante, sobre resúmenes nuevos, es
-// seguro: no vuelve a tocar lo que ya quedó categorizado.
+// seguro: no vuelve a tocar lo que ya quedó categorizado. Para recategorizar
+// movimientos que ya tienen el "Gastos operativos" genérico de antes de este
+// cambio, usar scripts/split-gastos-operativos.mjs.
 import postgres from "postgres";
 
 const url = process.env.DATABASE_URL;
@@ -25,23 +33,30 @@ if (!url) {
 }
 
 const apply = process.argv.includes("--apply");
-const categoryIdx = process.argv.indexOf("--category");
-const category = categoryIdx !== -1 ? process.argv[categoryIdx + 1] : "Gastos operativos";
 
-// Patrones conocidos de cargos de resumen de Banco Macro (tarjeta Visa
-// Business / Negocios XXI) — conservador a propósito: matchea el PREFIJO
-// exacto de cada línea boilerplate, no palabras sueltas, para no agarrar por
-// error un consumo real que tenga una de estas palabras en el medio.
-const FEE_PATTERNS = [
-  /^PERCEP\.?\s*IVA/i,
-  /^DB\s*IVA/i,
-  /^COMIS\./i, // COMIS.RENOVAC..., COMIS.MANTENIMIENTO, etc.
-  /^IMPUESTO\s*DE\s*SELLOS/i,
-  /^SELLADO\s*PROVINCIAL/i,
-  /^INTERESES?\s*FINANCIACION/i,
-  /^PUNIT\./i, // PUNIT.PAG.MIN.ANTERIOR
-  /^TRANSFERENCIA\s*DEUDA/i,
+// Mismos grupos que src/lib/parsers/fee-categories.ts (ese archivo es
+// TypeScript, este script es un .mjs plano para poder correrlo con `node`
+// directo sin pasar por el build de Next) — si se agrega un patrón nuevo
+// acá, hay que agregarlo ahí también.
+const FALLBACK_CATEGORY = "Gastos operativos";
+const FEE_GROUPS = [
+  {
+    category: "Impuestos y comisiones bancarias",
+    patterns: [/^PERCEP\.?\s*IVA/i, /^DB\s*IVA/i, /^COMIS\./i, /^IMPUESTO\s*DE\s*SELLOS/i, /^SELLADO\s*PROVINCIAL/i],
+  },
+  {
+    category: "Intereses y gastos financieros",
+    patterns: [/^INTERESES?\s*FINANCIACION/i, /^PUNIT\./i, /^TRANSFERENCIA\s*DEUDA/i],
+  },
 ];
+
+function detectCategory(description, cargoFlag) {
+  const trimmed = description.trim();
+  const group = FEE_GROUPS.find((g) => g.patterns.some((re) => re.test(trimmed)));
+  if (group) return group.category;
+  // Cargo general del resumen, sin patrón específico conocido: fallback genérico.
+  return cargoFlag === "true" ? FALLBACK_CATEGORY : null;
+}
 
 const sql = postgres(url);
 
@@ -54,17 +69,19 @@ try {
     order by date desc
   `;
 
-  const matched = rows.filter(
-    (r) => r.cargo_flag === "true" || FEE_PATTERNS.some((re) => re.test(r.description.trim())),
-  );
+  const matched = rows
+    .map((r) => ({ ...r, category: detectCategory(r.description, r.cargo_flag) }))
+    .filter((r) => r.category !== null);
 
   if (matched.length === 0) {
     console.log("No hay movimientos de tarjeta sin categorizar que coincidan con los patrones conocidos.");
   } else {
     console.log(`${apply ? "Aplicando" : "Encontrados (dry-run, no se tocó nada)"}: ${matched.length} movimientos\n`);
 
-    const byDesc = new Map();
+    const byCategory = new Map();
     for (const r of matched) {
+      if (!byCategory.has(r.category)) byCategory.set(r.category, new Map());
+      const byDesc = byCategory.get(r.category);
       const key = r.description.trim();
       const g = byDesc.get(key) ?? { count: 0, total: 0 };
       g.count++;
@@ -72,16 +89,22 @@ try {
       byDesc.set(key, g);
     }
     const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-    for (const [desc, g] of [...byDesc.entries()].sort((a, b) => b[1].total - a[1].total)) {
-      console.log(`  ${String(g.count).padStart(3)}x  ${fmt.format(g.total).padStart(14)}   ${desc}`);
+    for (const [category, byDesc] of byCategory) {
+      console.log(`"${category}":`);
+      for (const [desc, g] of [...byDesc.entries()].sort((a, b) => b[1].total - a[1].total)) {
+        console.log(`  ${String(g.count).padStart(3)}x  ${fmt.format(g.total).padStart(14)}   ${desc}`);
+      }
+      console.log("");
     }
     const grandTotal = matched.reduce((acc, r) => acc + Math.abs(Number(r.amount)), 0);
-    console.log(`\nTotal: ${fmt.format(grandTotal)} en ${matched.length} movimientos.`);
+    console.log(`Total: ${fmt.format(grandTotal)} en ${matched.length} movimientos.`);
 
     if (apply) {
-      const ids = matched.map((r) => r.id);
-      await sql`update transactions set category = ${category} where id = any(${ids})`;
-      console.log(`\nListo — categorizados como "${category}".`);
+      for (const category of byCategory.keys()) {
+        const ids = matched.filter((r) => r.category === category).map((r) => r.id);
+        await sql`update transactions set category = ${category} where id = any(${ids})`;
+      }
+      console.log(`\nListo.`);
     } else {
       console.log('\nEsto fue solo una vista previa. Para aplicarlo de verdad, agregá "--apply" al comando.');
     }

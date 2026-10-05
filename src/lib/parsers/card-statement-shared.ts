@@ -119,8 +119,11 @@ export function buildRowsFromExtraction(extraction: StatementExtraction): {
       // Los cargos generales del resumen (no atados a ninguna tarjeta) son,
       // por definición, plata que cobra el banco directo — nunca van a tener
       // una factura o transferencia con la que cruzar, así que van
-      // categorizados siempre, sin necesidad de que matcheen un patrón.
-      category: DEFAULT_FEE_CATEGORY,
+      // categorizados siempre, sin necesidad de que matcheen un patrón. Si
+      // la descripción sí matchea un patrón específico (impuestos/comisiones
+      // vs. intereses), se usa esa categoría más precisa; si no, el genérico
+      // "Gastos operativos" de fallback.
+      category: detectFeeCategory(cargo.descripcion) ?? DEFAULT_FEE_CATEGORY,
       raw: { cargoDelResumen: true, descripcion: cargo.descripcion },
     });
   }
