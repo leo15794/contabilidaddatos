@@ -1,0 +1,3984 @@
+[
+  {
+    "row": {
+      "sheet": "Especial Febrero",
+      "fecha": "27/02/2025",
+      "ref": "B-1-67",
+      "counterparty": "TEF DATANET PR BOLDT B GAMING UT 33717084239",
+      "importe": 673736.4
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 67
+    },
+    "invoiceId": 2614,
+    "bankTxnId": 759,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo",
+      "fecha": "27/03/2025",
+      "ref": "A-3-3",
+      "counterparty": "TEF DATANET PR CASINO PUERTO SANT 30709753661",
+      "importe": 2826735.46
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 3
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo",
+      "fecha": "27/03/2025",
+      "ref": "B-1-72",
+      "counterparty": "TEF DATANET PR BOLDT B GAMING UT 33717084239",
+      "importe": 619738.1
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 72
+    },
+    "invoiceId": 2620,
+    "bankTxnId": 771,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo",
+      "fecha": "18/03/2025",
+      "ref": "A-1-3",
+      "counterparty": "TEF DATANET PR CASINO PUERTO SANT 30709753661",
+      "importe": 5640675.92
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 3
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo",
+      "fecha": "06/03/2025",
+      "ref": "B-1-66",
+      "counterparty": "TEF DATANET PR BOLDT SG DIGTAL UT 30717606392",
+      "importe": 728932.82
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 66
+    },
+    "invoiceId": 2613,
+    "bankTxnId": 793,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril",
+      "fecha": "28/04/2025",
+      "ref": "A-10-3",
+      "counterparty": "PAGO",
+      "importe": -378112.16
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 10,
+      "numero": 3
+    },
+    "invoiceId": 25,
+    "bankTxnId": 796,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril",
+      "fecha": "25/04/2025",
+      "ref": "B-1-79",
+      "counterparty": "TEF DATANET PR BOLDT SA SG DIGITA 30717665011",
+      "importe": 171033.45
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 79
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril",
+      "fecha": "24/04/2025",
+      "ref": "A-1-5",
+      "counterparty": "TEF DATANET PR CASINO PUERTO SANT 30709753661",
+      "importe": 3332432.94
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 5
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril",
+      "fecha": "24/04/2025",
+      "ref": "A-1-19",
+      "counterparty": "TEF DATANET PR BOLDT S.A. 30500179151",
+      "importe": 2896287.84
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 19
+    },
+    "invoiceId": 2626,
+    "bankTxnId": 814,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril",
+      "fecha": "21/04/2025",
+      "ref": "A-3-413",
+      "counterparty": "ESPACIO 682",
+      "importe": -426947
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 413
+    },
+    "invoiceId": 22,
+    "bankTxnId": 817,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril",
+      "fecha": "14/04/2025",
+      "ref": "A-9-1107617",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -540561.88
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1107617
+    },
+    "invoiceId": 19,
+    "bankTxnId": 821,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril",
+      "fecha": "03/04/2025",
+      "ref": "A-1-17",
+      "counterparty": "TEF DATANET PR BOLDT S.A. 30500179151",
+      "importe": 3739364.52
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 17
+    },
+    "invoiceId": 2610,
+    "bankTxnId": 835,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "30/05/2025",
+      "ref": "A-3-1754",
+      "counterparty": "MISHFERE S.R.L.",
+      "importe": -1881923.59
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 1754
+    },
+    "invoiceId": 26,
+    "bankTxnId": 843,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "22/05/2025",
+      "ref": "A-1-21",
+      "counterparty": "TEF DATANET PR CASINO PUERTO SANT 30709753661",
+      "importe": 3606119.32
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 21
+    },
+    "invoiceId": 2629,
+    "bankTxnId": 861,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "22/05/2025",
+      "ref": "B-1-99",
+      "counterparty": "TEF DATANET PR BOLDT SA SG DIGITA 30717665011",
+      "importe": 1155809.09
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 99
+    },
+    "invoiceId": 2639,
+    "bankTxnId": 862,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "22/05/2025",
+      "ref": "B-1-100",
+      "counterparty": "TEF DATANET PR BOLDT FUENTE MAYO  30718066898",
+      "importe": 211372.25
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 100
+    },
+    "invoiceId": 2635,
+    "bankTxnId": 863,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "22/05/2025",
+      "ref": "B-1-98",
+      "counterparty": "TEF DATANET PR BOLDT B GAMING UT 33717084239",
+      "importe": 703126.35
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 98
+    },
+    "invoiceId": 2636,
+    "bankTxnId": 864,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "14/05/2025",
+      "ref": "A-1-833",
+      "counterparty": "DIGIBOOST S.R.L.",
+      "importe": -544500
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 833
+    },
+    "invoiceId": 28,
+    "bankTxnId": 877,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "14/05/2025",
+      "ref": "A-4-1274",
+      "counterparty": "GUTIERREZ VANESA BEATRIZ",
+      "importe": -692350
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 4,
+      "numero": 1274
+    },
+    "invoiceId": 41,
+    "bankTxnId": 881,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "14/05/2025",
+      "ref": "B-1-111",
+      "counterparty": "TEF DATANET PR OL C BETSSON TRA 30717724883",
+      "importe": 9606.89
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 111
+    },
+    "invoiceId": 2648,
+    "bankTxnId": 882,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "05/05/2025",
+      "ref": "C-1-11",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -584200
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 11
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "05/05/2025",
+      "ref": "A-2-570",
+      "counterparty": "ENFOQUE PROFESIONAL S.R.L.",
+      "importe": -49610
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 570
+    },
+    "invoiceId": 35,
+    "bankTxnId": 914,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo",
+      "fecha": "05/05/2025",
+      "ref": "A-3-1755",
+      "counterparty": "MISHFERE S.R.L.",
+      "importe": -1881923.59
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 1755
+    },
+    "invoiceId": 27,
+    "bankTxnId": 917,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "26/06/2025",
+      "ref": "B-1-113",
+      "counterparty": "TEF DATANET PR BOLDT FUENTE MAYO  30718066898",
+      "importe": 22423.28
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 113
+    },
+    "invoiceId": 2655,
+    "bankTxnId": 925,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "26/06/2025",
+      "ref": "B-1-112",
+      "counterparty": "TEF DATANET PR BOLDT SG DIGTAL UT 30717606392",
+      "importe": 6982509.22
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 112
+    },
+    "invoiceId": 2654,
+    "bankTxnId": 927,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "25/06/2025",
+      "ref": "A-9-1119934",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -594850.32
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1119934
+    },
+    "invoiceId": 61,
+    "bankTxnId": 932,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "19/06/2025",
+      "ref": "B-1-6",
+      "counterparty": "TEF DATANET PR CASINO PUERTO SANT 30709753661",
+      "importe": 4102884.95
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 6
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "18/06/2025",
+      "ref": "A-11-13327",
+      "counterparty": "ISABEL TOMAS SRL",
+      "importe": -288848
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 11,
+      "numero": 13327
+    },
+    "invoiceId": 63,
+    "bankTxnId": 948,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "06/06/2025",
+      "ref": "A-3-1679",
+      "counterparty": "LUXONO S. R. L.",
+      "importe": -649800.15
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 1679
+    },
+    "invoiceId": 58,
+    "bankTxnId": 959,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "04/06/2025",
+      "ref": "A-1-864",
+      "counterparty": "DIGIBOOST S.R.L",
+      "importe": -544500
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 864
+    },
+    "invoiceId": 81,
+    "bankTxnId": 966,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "04/06/2025",
+      "ref": "A-2-557",
+      "counterparty": "ENFOQUE PROFESIONAL S.R.L.",
+      "importe": -49610
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 557
+    },
+    "expectedSource": "afip_received",
+    "reason": "ref no resolvió, y por nombre+monto quedaron 3 candidatos empatados",
+    "candidateIds": [
+      16,
+      35,
+      53
+    ]
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "03/06/2025",
+      "ref": "C-1-1",
+      "counterparty": "Luciana Piccone",
+      "importe": -704900
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 1
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "02/06/2025",
+      "ref": "C-1-12",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -692900
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 12
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "02/06/2025",
+      "ref": "C-1-1",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -1298475
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 1
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio",
+      "fecha": "02/06/2025",
+      "ref": "C-1-1",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1125025
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 1
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "30/07/2025",
+      "ref": "B-1-31",
+      "counterparty": "Retencion",
+      "importe": 7360698.91
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 31
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "30/07/2025",
+      "ref": "C2-12",
+      "counterparty": "BARRIENTOS EVANGELINA",
+      "importe": -500000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 12
+    },
+    "invoiceId": 110,
+    "bankTxnId": 999,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "23/07/2025",
+      "ref": "B-1-125",
+      "counterparty": "TEF DATANET PR BOLDT SA SG DIGITA 30717665011",
+      "importe": 381834.46
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 125
+    },
+    "invoiceId": 2670,
+    "bankTxnId": 1015,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "23/07/2025",
+      "ref": "B-1-137",
+      "counterparty": "TEF DATANET PR BOLDT FUENTE MAYO  30718066898",
+      "importe": 403844.51
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 137
+    },
+    "invoiceId": 2683,
+    "bankTxnId": 1016,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "23/07/2025",
+      "ref": "B-1-126",
+      "counterparty": "TEF DATANET PR BOLDT B GAMING UT 33717084239",
+      "importe": 841171.31
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 126
+    },
+    "invoiceId": 2671,
+    "bankTxnId": 1017,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "23/07/2025",
+      "ref": "B-1-123",
+      "counterparty": "TEF DATANET PR BOLDT SG DIGTAL UT 30717606392",
+      "importe": 10380759.94
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 123
+    },
+    "invoiceId": 2668,
+    "bankTxnId": 1018,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "23/07/2025",
+      "ref": "A-1-25",
+      "counterparty": "FRANCISCO JOSE D AMICO Y ASOCIADOS S. A. S.",
+      "importe": 4412284
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 25
+    },
+    "invoiceId": 2679,
+    "bankTxnId": 1019,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "16/07/2025",
+      "ref": "B-1-125",
+      "counterparty": "TEF DATANET PR BOLDT SA SG DIGITA 30717665011",
+      "importe": 942394.13
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 125
+    },
+    "invoiceId": 2670,
+    "bankTxnId": 1033,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "16/07/2025",
+      "ref": "B-1-135",
+      "counterparty": "TEF DATANET PR OL C BETSSON TRA   30717724883",
+      "importe": 17653.6
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 135
+    },
+    "invoiceId": 2688,
+    "bankTxnId": 1034,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "16/07/2025",
+      "ref": "B-1-129",
+      "counterparty": "TEF DATANET PR BETSSON MH LTD T   30717279065",
+      "importe": 21951.6
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 129
+    },
+    "invoiceId": 2675,
+    "bankTxnId": 1035,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "15/07/2025",
+      "ref": "C-7-7",
+      "counterparty": "BARRIENTOS EVANGELINA",
+      "importe": -500000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 7,
+      "numero": 7
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "08/07/2025",
+      "ref": "C-1-2",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -203185
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 2
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "02/07/2025",
+      "ref": "C-1-2",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -1154625
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 2
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "01/07/2025",
+      "ref": "C-1-16",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -100000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 16
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "01/07/2025",
+      "ref": "A-2-584",
+      "counterparty": "ENFOQUE PROFESIONAL S.R.L.",
+      "importe": -60500
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 584
+    },
+    "invoiceId": 83,
+    "bankTxnId": 1079,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "01/07/2025",
+      "ref": "C-1-1",
+      "counterparty": "MANJARRES LOMBARDI ARIADNA MARIA",
+      "importe": -1980600
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 1
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "01/07/2025",
+      "ref": "C-1-2",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -1185535
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 2
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "01/07/2025",
+      "ref": "C-1-2",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1088992
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 2
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "01/07/2025",
+      "ref": "C-1-15",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -843625
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 15
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio",
+      "fecha": "01/07/2025",
+      "ref": "C-1-864",
+      "counterparty": "DIGIBOOST S.R.L.",
+      "importe": -544500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 864
+    },
+    "expectedSource": "afip_received",
+    "reason": "ref no resolvió, y por nombre+monto quedaron 11 candidatos empatados",
+    "candidateIds": [
+      4,
+      11,
+      17,
+      28,
+      51,
+      81,
+      125,
+      187,
+      239,
+      290,
+      317
+    ]
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "29/08/2025",
+      "ref": "C-1-20",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -469630
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 20
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "25/08/2025",
+      "ref": "A-3-60",
+      "counterparty": "SANTILLI JAVIER ERNESTO",
+      "importe": -938165.01
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 60
+    },
+    "invoiceId": 160,
+    "bankTxnId": 1110,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "22/08/2025",
+      "ref": "A-3-31",
+      "counterparty": "SCIUTTO IVAN ANDRES",
+      "importe": -2420000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 31
+    },
+    "invoiceId": 153,
+    "bankTxnId": 1121,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "22/08/2025",
+      "ref": "A-1-883",
+      "counterparty": "DIGIBOOST SRL",
+      "importe": -544500
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 883
+    },
+    "invoiceId": 125,
+    "bankTxnId": 1123,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "22/08/2025",
+      "ref": "C-1-4",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -115500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 4
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "22/08/2025",
+      "ref": "C-1-148",
+      "counterparty": "MOLINA CARLOS JAVIER",
+      "importe": -115500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 148
+    },
+    "invoiceId": 155,
+    "reason": "3 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "22/08/2025",
+      "ref": "A-9-116122",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -612688.96
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 116122
+    },
+    "invoiceId": 91,
+    "bankTxnId": 1128,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "21/08/2025",
+      "ref": "A-1-8",
+      "counterparty": "TEF DATANET PR CASINO PUERTO SANT 30709753661",
+      "importe": 5437630.7
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 8
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "21/08/2025",
+      "ref": "A-1-36",
+      "counterparty": "TEF DATANET PR BOLDT SG DIGTAL UT 30717606392",
+      "importe": 11170576.54
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 36
+    },
+    "invoiceId": 2840,
+    "bankTxnId": 1137,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "21/08/2025",
+      "ref": "B-1-139",
+      "counterparty": "TEF DATANET PR BOLDT B GAMING UT  33717084239",
+      "importe": 1428916.1
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 139
+    },
+    "invoiceId": 2687,
+    "bankTxnId": 1138,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "21/08/2025",
+      "ref": "B-1-137",
+      "counterparty": "TEF DATANET PR BOLDT FUENTE MAYO  30718066898",
+      "importe": 403530.34
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 137
+    },
+    "invoiceId": 2683,
+    "bankTxnId": 1139,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "21/08/2025",
+      "ref": "B-1-138",
+      "counterparty": "TEF DATANET PR BOLDT SA SG DIGITA 30717665011",
+      "importe": 1402170.86
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 138
+    },
+    "invoiceId": 2685,
+    "bankTxnId": 1141,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "14/08/2025",
+      "ref": "A-2-1505",
+      "counterparty": "CARTAS COMPUTACION S.A.",
+      "importe": -491973
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 1505
+    },
+    "invoiceId": 141,
+    "bankTxnId": 1146,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "13/08/2025",
+      "ref": "A-3-4271",
+      "counterparty": "GOLDENTAL BRIAN",
+      "importe": -362085.24
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 4271
+    },
+    "invoiceId": 131,
+    "bankTxnId": 1153,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "13/08/2025",
+      "ref": "B-1-135",
+      "counterparty": "TEF DATANET PR OL C BETSSON TRA 30717724883",
+      "importe": 2898.09
+    },
+    "decoded": {
+      "tipo": "B",
+      "ptoVta": 1,
+      "numero": 135
+    },
+    "invoiceId": 2688,
+    "bankTxnId": 1154,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "08/08/2025",
+      "ref": "C-1-3",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -608107.86
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 3
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "08/08/2025",
+      "ref": "C-5-24",
+      "counterparty": "ASTELLANO BENJAMIN",
+      "importe": -550162.4
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 5,
+      "numero": 24
+    },
+    "invoiceId": 133,
+    "bankTxnId": 1165,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "07/08/2025",
+      "ref": "A-1-8",
+      "counterparty": "TEF DATANET PR CASINO PUERTO SANT 30709753661",
+      "importe": 4006959.07
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 8
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "05/08/2025",
+      "ref": "A-4-15",
+      "counterparty": "BARBE S. R. L.",
+      "importe": -4901850
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 4,
+      "numero": 15
+    },
+    "invoiceId": 127,
+    "bankTxnId": 1180,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "05/08/2025",
+      "ref": "A-4-6493",
+      "counterparty": "MARRONE MARIANA",
+      "importe": -295000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 4,
+      "numero": 6493
+    },
+    "invoiceId": 129,
+    "bankTxnId": 1183,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "05/08/2025",
+      "ref": "A-22-1283",
+      "counterparty": "ROBERTO L PINASCO E HIJOS S.R.L.",
+      "importe": -101996
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 22,
+      "numero": 1283
+    },
+    "invoiceId": 130,
+    "bankTxnId": 1184,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "04/08/2025",
+      "ref": "A-2-593",
+      "counterparty": "ENFOQUE PROFESIONAL S.R.L.",
+      "importe": -60500
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 593
+    },
+    "invoiceId": 124,
+    "bankTxnId": 1196,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "04/08/2025",
+      "ref": "C-1-3",
+      "counterparty": "MANJARRES LOMBARDI ARIADNA MARIA",
+      "importe": -944200
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 3
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "04/08/2025",
+      "ref": "C-1-3",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -1095000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 3
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "04/08/2025",
+      "ref": "C-1-19",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -803250
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 19
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "01/08/2025",
+      "ref": "C-1-3",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1223000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 3
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "01/08/2025",
+      "ref": "C-1-5",
+      "counterparty": "PAGO",
+      "importe": -1451500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 5
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto",
+      "fecha": "01/08/2025",
+      "ref": "A-3-243",
+      "counterparty": "BARBE S. R. L.",
+      "importe": -4636800
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 243
+    },
+    "invoiceId": 114,
+    "bankTxnId": 1222,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "26/09/2025",
+      "ref": "A-4-19",
+      "counterparty": "BARBE S. R. L.",
+      "importe": -3256000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 4,
+      "numero": 19
+    },
+    "invoiceId": 215,
+    "bankTxnId": 1237,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "26/09/2025",
+      "ref": "A-6-10451",
+      "counterparty": "PEDREGOZA JOSE HUGO",
+      "importe": -1910404.28
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 6,
+      "numero": 10451
+    },
+    "invoiceId": 209,
+    "bankTxnId": 1239,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "23/09/2025",
+      "ref": "A-9-1138612",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -648739.48
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1138612
+    },
+    "invoiceId": 200,
+    "bankTxnId": 1263,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "19/09/2025",
+      "ref": "C-1-6",
+      "counterparty": "PAGO",
+      "importe": -158000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 6
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "19/09/2025",
+      "ref": "C-1-150",
+      "counterparty": "PAGO",
+      "importe": -158000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 150
+    },
+    "invoiceId": 213,
+    "reason": "3 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "10/09/2025",
+      "ref": "C-1-4",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -1350043.91
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 4
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "03/09/2025",
+      "ref": "A-2-601",
+      "counterparty": "ENFOQUE PROFESIONAL S.R.L.",
+      "importe": -60500
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 601
+    },
+    "invoiceId": 188,
+    "bankTxnId": 1301,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "03/09/2025",
+      "ref": "A-1-895",
+      "counterparty": "DIGIBOOST S.R.L.",
+      "importe": -544500
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 895
+    },
+    "invoiceId": 187,
+    "bankTxnId": 1303,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "03/09/2025",
+      "ref": "C-1-5",
+      "counterparty": "MANJARRES LOMBARDI ARIADNA MARIA",
+      "importe": -941500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 5
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "03/09/2025",
+      "ref": "C-1-149",
+      "counterparty": "MOLINA CARLOS JAVIER",
+      "importe": -121
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 149
+    },
+    "invoiceId": 190,
+    "reason": "8 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "03/09/2025",
+      "ref": "C-1-4",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -1038000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 4
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "03/09/2025",
+      "ref": "C-1-6",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -2047250
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 6
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "03/09/2025",
+      "ref": "C-1-5",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1262875
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 5
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "03/09/2025",
+      "ref": "C-1-22",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -709000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 22
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "02/09/2025",
+      "ref": "C-2-210",
+      "counterparty": "ARREGUI JOAQUIN BAUTISTA",
+      "importe": -770095
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 210
+    },
+    "invoiceId": 135,
+    "bankTxnId": 1328,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Septiembre",
+      "fecha": "01/09/2025",
+      "ref": "A-11-13562",
+      "counterparty": "ISABEL TOMAS SRL",
+      "importe": -138962.02
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 11,
+      "numero": 13562
+    },
+    "invoiceId": 183,
+    "bankTxnId": 1331,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "30/10/2025",
+      "ref": "C-1-25",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -2328613
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 25
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "29/10/2025",
+      "ref": "A-2-4109",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -4840000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4109
+    },
+    "invoiceId": 275,
+    "bankTxnId": 1341,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "28/10/2025",
+      "ref": "C-1-152",
+      "counterparty": "CARLOS JAVIER MOLINA",
+      "importe": -200000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 152
+    },
+    "invoiceId": 274,
+    "reason": "3 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "28/10/2025",
+      "ref": "C-1-12",
+      "counterparty": "CAMILO CORDOBA",
+      "importe": -200000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 12
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "28/10/2025",
+      "ref": "C-1-8",
+      "counterparty": "NICOLAS SAUCEDO",
+      "importe": -200000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 8
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "28/10/2025",
+      "ref": "A-20-3571",
+      "counterparty": "ROBERTO L PINASCO E HIJOS S.R.L.",
+      "importe": -257250
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 20,
+      "numero": 3571
+    },
+    "invoiceId": 271,
+    "bankTxnId": 1356,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "27/10/2025",
+      "ref": "A-9-1144885",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -687552.76
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1144885
+    },
+    "invoiceId": 250,
+    "bankTxnId": 1366,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "27/10/2025",
+      "ref": "A-105-97953",
+      "counterparty": "ACCESANIGA S A",
+      "importe": -1264357.87
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 105,
+      "numero": 97953
+    },
+    "invoiceId": 270,
+    "bankTxnId": 1368,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "24/10/2025",
+      "ref": "A-3-33",
+      "counterparty": "SCIUTTO IVAN ANDRES",
+      "importe": -2420000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 33
+    },
+    "invoiceId": 267,
+    "bankTxnId": 1377,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "24/10/2025",
+      "ref": "A-1-904",
+      "counterparty": "DIGIBOOST S.R.L.",
+      "importe": -544500
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 904
+    },
+    "invoiceId": 239,
+    "bankTxnId": 1379,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "23/10/2025",
+      "ref": "A-20-3564",
+      "counterparty": "ROBERTO L PINASCO E HIJOS S.R.L.",
+      "importe": -8451064
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 20,
+      "numero": 3564
+    },
+    "invoiceId": 266,
+    "bankTxnId": 1390,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "16/10/2025",
+      "ref": "C-1-5",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -80687.86
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 5
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "03/10/2025",
+      "ref": "C-1-7",
+      "counterparty": "MANJARRES LOMBARDI ARIADNA MARIA",
+      "importe": -819100
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 7
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "03/10/2025",
+      "ref": "C-1-5",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -736000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 5
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "03/10/2025",
+      "ref": "C-1-24",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -685500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 24
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "03/10/2025",
+      "ref": "C-1-10",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -1526000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 10
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "03/10/2025",
+      "ref": "A-2-4085",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -2677330
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4085
+    },
+    "invoiceId": 236,
+    "bankTxnId": 1441,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "02/10/2025",
+      "ref": "A-4-218",
+      "counterparty": "ARBALLO EMILIO",
+      "importe": -3630000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 4,
+      "numero": 218
+    },
+    "invoiceId": 225,
+    "bankTxnId": 1450,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Octubre",
+      "fecha": "02/10/2025",
+      "ref": "A-6-12",
+      "counterparty": "RODRIGUEZ JOANA SOLEDAD",
+      "importe": -7907218.59
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 6,
+      "numero": 12
+    },
+    "invoiceId": 224,
+    "bankTxnId": 1452,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Noviembre",
+      "fecha": "26/11/2025",
+      "ref": "A-3-34",
+      "counterparty": "SCIUTTO IVAN ANDRES",
+      "importe": -1210000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 34
+    },
+    "invoiceId": 298,
+    "bankTxnId": 1474,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Noviembre",
+      "fecha": "25/11/2025",
+      "ref": "A-9-1151142",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -689911.64
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1151142
+    },
+    "invoiceId": 292,
+    "bankTxnId": 1496,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Noviembre",
+      "fecha": "04/11/2025",
+      "ref": "A-1-911",
+      "counterparty": "DIGIBOOST S.R.L.",
+      "importe": -1452000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 911
+    },
+    "invoiceId": 286,
+    "bankTxnId": 1535,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Noviembre",
+      "fecha": "04/11/2025",
+      "ref": "C-1-6",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -816000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 6
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Noviembre",
+      "fecha": "04/11/2025",
+      "ref": "C-1-27",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -793000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 27
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Noviembre",
+      "fecha": "04/11/2025",
+      "ref": "C-1-12",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -1500250
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 12
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Noviembre",
+      "fecha": "04/11/2025",
+      "ref": "C-1-153",
+      "counterparty": "MOLINA CARLOS JAVIER",
+      "importe": -1139750
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 153
+    },
+    "invoiceId": 280,
+    "bankTxnId": 1547,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "23/12/2025",
+      "ref": "A-9-1157425",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -706832.24
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1157425
+    },
+    "invoiceId": 332,
+    "bankTxnId": 1572,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "23/12/2025",
+      "ref": "C-1-15",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -356020
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 15
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "23/12/2025",
+      "ref": "C-1-12",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -356020
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 12
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "22/12/2025",
+      "ref": "A-3-35",
+      "counterparty": "SCIUTTO IVAN ANDRES",
+      "importe": -1210000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 35
+    },
+    "invoiceId": 342,
+    "bankTxnId": 1582,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "19/12/2025",
+      "ref": "A-22-1386",
+      "counterparty": "ROBERTO L PINASCO E HIJOS S.R.L.",
+      "importe": -144743.8
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 22,
+      "numero": 1386
+    },
+    "invoiceId": 341,
+    "bankTxnId": 1589,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "10/12/2025",
+      "ref": "C-1-6",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -484666.89
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 6
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "09/12/2025",
+      "ref": "C-1-29",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -726000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 29
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "03/12/2025",
+      "ref": "A-2-4085",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -2677330
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4085
+    },
+    "invoiceId": 236,
+    "bankTxnId": 1617,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "02/12/2025",
+      "ref": "C-1-11",
+      "counterparty": "MANJARRES LOMBARDI ARIADNA MARIA",
+      "importe": -359000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 11
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "02/12/2025",
+      "ref": "C-1-7",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -530000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 7
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "01/12/2025",
+      "ref": "C-1-11",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -991650
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 11
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "01/12/2025",
+      "ref": "C-1-13",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -157900
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 13
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Diciembre",
+      "fecha": "01/12/2025",
+      "ref": "C-1-14",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -1311000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 14
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "30/01/2026",
+      "ref": "A-9 1163610",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -727330.68
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1163610
+    },
+    "invoiceId": 370,
+    "bankTxnId": 1662,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "30/01/2026",
+      "ref": "C-157-158",
+      "counterparty": "MOLINA CARLOS JAVIER",
+      "importe": -2253000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 157,
+      "numero": 158
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "27/01/2026",
+      "ref": "A  619-631",
+      "counterparty": "ENFOQUE PROFESIONAL S.R.L.",
+      "importe": -139150
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 619,
+      "numero": 631
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "26/01/2026",
+      "ref": "A  2-632",
+      "counterparty": "ENFOQUE PROFESIONAL S.R.L.",
+      "importe": -1210000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 632
+    },
+    "invoiceId": 379,
+    "bankTxnId": 1689,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "23/01/2026",
+      "ref": "C-1-7",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -334000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 7
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "23/01/2026",
+      "ref": "C-1-14",
+      "counterparty": "Pago",
+      "importe": -334000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 14
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "06/01/2026",
+      "ref": "C-1-14",
+      "counterparty": "MANJARRES LOMBARDI ARIADNA MARIA",
+      "importe": -249000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 14
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "05/01/2026",
+      "ref": "A946-940",
+      "counterparty": "DIGIBOOST S.R.L.",
+      "importe": -3001526
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 946,
+      "numero": 940
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "05/01/2026",
+      "ref": "A2-4261",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -5000000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4261
+    },
+    "invoiceId": 354,
+    "bankTxnId": 1766,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "05/01/2026",
+      "ref": "C3-19",
+      "counterparty": "PANERO FRANCO EMANUEL",
+      "importe": -720750
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 3,
+      "numero": 19
+    },
+    "invoiceId": 364,
+    "bankTxnId": 1769,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "05/01/2026",
+      "ref": "C1-8",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -689250
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 8
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "05/01/2026",
+      "ref": "C1-13",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1092000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 13
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Enero 2026",
+      "fecha": "05/01/2026",
+      "ref": "C1-16",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -1539500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 16
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "25/02/2026",
+      "ref": "C 1-16",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -404300
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 16
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "25/02/2026",
+      "ref": "C 1-19",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -404300
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 19
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "06/02/2026",
+      "ref": "A 1-962",
+      "counterparty": "DIGIBOOST S.R.L.",
+      "importe": -6050000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 962
+    },
+    "invoiceId": 413,
+    "bankTxnId": 1828,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "05/02/2026",
+      "ref": "A 3-1947",
+      "counterparty": "ROMANEO S.R.L.",
+      "importe": -1023420
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 1947
+    },
+    "invoiceId": 409,
+    "bankTxnId": 1830,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "03/02/2026",
+      "ref": "A 2-4328",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -5203000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4328
+    },
+    "invoiceId": 396,
+    "bankTxnId": 1851,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "03/02/2026",
+      "ref": "A 3-36",
+      "counterparty": "SCIUTTO IVAN ANDRES",
+      "importe": -1709367
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 3,
+      "numero": 36
+    },
+    "invoiceId": 405,
+    "bankTxnId": 1853,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "03/02/2026",
+      "ref": "C 1-15",
+      "counterparty": "MANJARRES LOMBARDI ARIADNA MARIA",
+      "importe": -1217000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 15
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "03/02/2026",
+      "ref": "C 1-9",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -971500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 9
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "03/02/2026",
+      "ref": "C 1-32",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -810000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 32
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "03/02/2026",
+      "ref": "C 1-15",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1131000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 15
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Febrero 2026",
+      "fecha": "03/02/2026",
+      "ref": "C 1-18",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -1864500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 18
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "27/03/2026",
+      "ref": "A9-1169802",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": 80645095
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1169802
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "25/03/2026",
+      "ref": "C1-21",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": 80557020
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 21
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "25/03/2026",
+      "ref": "C1-18",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": 80557019
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 18
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "06/03/2026",
+      "ref": "C2-6",
+      "counterparty": "PASTORI MARCELO FEDERICO",
+      "importe": 631677
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 6
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "06/03/2026",
+      "ref": "C1-7",
+      "counterparty": "ARAGNO IRINA",
+      "importe": 412643
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 7
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "05/03/2026",
+      "ref": "A2-4389",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": 79586661
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4389
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "C3-21",
+      "counterparty": "PANERO FRANCO EMANUEL",
+      "importe": 79429395
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 3,
+      "numero": 21
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "A9-1176050",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": 79424041
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1176050
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "C5-32",
+      "counterparty": "ASTELLANO BENJAMIN",
+      "importe": 79424032
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 5,
+      "numero": 32
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "A1-953",
+      "counterparty": "DIGIBOOST S.R.L.",
+      "importe": 79424021
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 953
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "C1-159",
+      "counterparty": "MOLINA CARLOS JAVIER",
+      "importe": 255752
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 159
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "C1-35",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": 79423984
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 35
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "C1-10",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": 79423974
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 10
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "C1-17",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": 79423966
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 17
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "C1-16",
+      "counterparty": "MANJARRES LOMBARDI ARIADNA MARIA",
+      "importe": 79423955
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 16
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Marzo 2026",
+      "fecha": "03/03/2026",
+      "ref": "C1-20",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": 79423945
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 20
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "21/04/2026",
+      "ref": "C1-8",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -853800
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 8
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "07/04/2026",
+      "ref": "C2-7",
+      "counterparty": "PASTORI MARCELO FEDERICO",
+      "importe": -1456000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 7
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "07/04/2026",
+      "ref": "C1-26",
+      "counterparty": "FABBI FRANCO",
+      "importe": -2000000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 26
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "07/04/2026",
+      "ref": "C1-666",
+      "counterparty": "ARBALLO PAULA",
+      "importe": -2000000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 666
+    },
+    "invoiceId": 464,
+    "reason": "2 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "06/04/2026",
+      "ref": "C1-38",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -561600
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 38
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "06/04/2026",
+      "ref": "A2-4472",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -6050000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4472
+    },
+    "invoiceId": 494,
+    "bankTxnId": 2029,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "06/04/2026",
+      "ref": "C2-181",
+      "counterparty": "DIAZ YANCOMAY MARINA AMALIA",
+      "importe": -142500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 181
+    },
+    "invoiceId": 538,
+    "bankTxnId": 2031,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "01/04/2026",
+      "ref": "A2-653",
+      "counterparty": "ENFOQUE PROFESIONAL S.R.L.",
+      "importe": -121000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 653
+    },
+    "invoiceId": 488,
+    "bankTxnId": 2048,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "01/04/2026",
+      "ref": "C1-11",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -987000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 11
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "01/04/2026",
+      "ref": "C1-37",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -820000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 37
+    },
+    "invoiceId": 491,
+    "bankTxnId": 2058,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "01/04/2026",
+      "ref": "C1-19",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1245000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 19
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Abril 2026",
+      "fecha": "01/04/2026",
+      "ref": "C1-22",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -1756500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 22
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "28/05/2026",
+      "ref": "A2-4591",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -6001600
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4591
+    },
+    "invoiceId": 567,
+    "bankTxnId": 2083,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "28/05/2026",
+      "ref": "C1-29",
+      "counterparty": "FABBI FRANCO",
+      "importe": -3000000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 29
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "28/05/2026",
+      "ref": "A4-255",
+      "counterparty": "ARBALLO EMILIO",
+      "importe": -1210000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 4,
+      "numero": 255
+    },
+    "invoiceId": 568,
+    "bankTxnId": 2088,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "22/05/2026",
+      "ref": "C1-22",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -497000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 22
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "22/05/2026",
+      "ref": "C1-25",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -497000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 25
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "21/05/2026",
+      "ref": "C1-351",
+      "counterparty": "MARINOZZI JUAN PABLO",
+      "importe": -350000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 351
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "13/05/2026",
+      "ref": "A9-1188646",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -1703884
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 1188646
+    },
+    "invoiceId": 547,
+    "bankTxnId": 2122,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "06/05/2026",
+      "ref": "C2-183",
+      "counterparty": "DIAZ YANCOMAY MARINA AMALIA",
+      "importe": -142500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 183
+    },
+    "invoiceId": 537,
+    "bankTxnId": 2144,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "06/05/2026",
+      "ref": "C2-4532",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -6000000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 4532
+    },
+    "expectedSource": "afip_received",
+    "reason": "ref no resolvió, y por nombre+monto quedaron 2 candidatos empatados",
+    "candidateIds": [
+      528,
+      567
+    ]
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "05/05/2026",
+      "ref": "C1-27",
+      "counterparty": "FABBI FRANCO (no esta en ARCA)",
+      "importe": -3000000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 27
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "04/05/2026",
+      "ref": "C1-12",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -1021750
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 12
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "04/05/2026",
+      "ref": "C1-24",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -2044000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 24
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "04/05/2026",
+      "ref": "C1-41",
+      "counterparty": "PALAU MARIELA BEATRIZ",
+      "importe": -840000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 41
+    },
+    "invoiceId": 530,
+    "bankTxnId": 2174,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Mayo 2026",
+      "fecha": "04/05/2026",
+      "ref": "C1-21",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1299500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 21
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "24/06/2026",
+      "ref": "C1-27",
+      "counterparty": "SAUCEDO NICOLAS ERICD",
+      "importe": -669000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 27
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "24/06/2026",
+      "ref": "C1-24",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -660000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 24
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "23/06/2026",
+      "ref": "C1-1",
+      "counterparty": "UBALDI LEONEL",
+      "importe": -1567000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 1
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "09/06/2026",
+      "ref": "C1-354",
+      "counterparty": "MARINOZZI JUAN PABLO",
+      "importe": -284884.4
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 354
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "03/06/2026",
+      "ref": "C2-9",
+      "counterparty": "PASTORI MARCELO FEDERICO",
+      "importe": -1491000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 9
+    },
+    "invoiceId": 587,
+    "reason": "2 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "03/06/2026",
+      "ref": "C1-9",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -1491000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 9
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "02/06/2026",
+      "ref": "C1-23",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1335750
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 23
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "02/06/2026",
+      "ref": "C3-24",
+      "counterparty": "PANERO FRANCO EMANUEL",
+      "importe": -1011750
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 3,
+      "numero": 24
+    },
+    "invoiceId": 582,
+    "reason": "2 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "02/06/2026",
+      "ref": "C1-13",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -1011750
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 13
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Junio 2026",
+      "fecha": "02/06/2026",
+      "ref": "C1-26",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -2226250
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 26
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "29/07/2026",
+      "ref": "A1-3159",
+      "counterparty": "MIJO SRL",
+      "importe": -1082950
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 1,
+      "numero": 3159
+    },
+    "invoiceId": 685,
+    "bankTxnId": 2301,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "29/07/2026",
+      "ref": "A9-384267",
+      "counterparty": "LA VENDIMIA SOCIEDAD DE RESPONSABILIDAD LIMITADA",
+      "importe": -142000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 9,
+      "numero": 384267
+    },
+    "invoiceId": 684,
+    "bankTxnId": 2302,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "23/07/2026",
+      "ref": "A11-1350529",
+      "counterparty": "GOOGLE ARGENTINA S.R.L.",
+      "importe": -150000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 11,
+      "numero": 1350529
+    },
+    "invoiceId": 687,
+    "bankTxnId": 2323,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "20/07/2026",
+      "ref": "C1-26",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -155300
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 26
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "20/07/2026",
+      "ref": "C1-29",
+      "counterparty": "SAUCEDO NICOLAS ERIC",
+      "importe": -155300
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 29
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "20/07/2026",
+      "ref": "A11-1350529",
+      "counterparty": "GOOGLE ARGENTINA S.R.L.",
+      "importe": -100000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 11,
+      "numero": 1350529
+    },
+    "invoiceId": 687,
+    "bankTxnId": 2347,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "16/07/2026",
+      "ref": "C1-11",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -263811.24
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 11
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "16/07/2026",
+      "ref": "C9-1201391",
+      "counterparty": "NOSIS LABORATORIO DE INVESTIGACION Y DESARROLLO S A",
+      "importe": -956871.72
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 9,
+      "numero": 1201391
+    },
+    "invoiceId": 655,
+    "bankTxnId": 2368,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "13/07/2026",
+      "ref": "C1-355",
+      "counterparty": "MARINOZZI JUAN PABLO",
+      "importe": -232759.5
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 355
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "08/07/2026",
+      "ref": "A11-1350529",
+      "counterparty": "GOOGLE ARGENTINA S.R.L.",
+      "importe": -100000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 11,
+      "numero": 1350529
+    },
+    "invoiceId": 687,
+    "bankTxnId": 2389,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "07/07/2026",
+      "ref": "C1-2",
+      "counterparty": "UBALDI LEONEL",
+      "importe": -2500000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 2
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "06/07/2026",
+      "ref": "C1-10",
+      "counterparty": "ARAGNO IRINA",
+      "importe": -1550000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 10
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "06/07/2026",
+      "ref": "C2-10",
+      "counterparty": "PASTORI MARCELO FEDERICO",
+      "importe": -1550000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 2,
+      "numero": 10
+    },
+    "invoiceId": 641,
+    "reason": "2 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "03/07/2026",
+      "ref": "A11-1350529",
+      "counterparty": "GOOGLE ARGENTINA S.R.L.",
+      "importe": -300000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 11,
+      "numero": 1350529
+    },
+    "invoiceId": 687,
+    "bankTxnId": 2431,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "02/07/2026",
+      "ref": "C1-679",
+      "counterparty": "ARBALLO PAULA",
+      "importe": -2000000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 679
+    },
+    "invoiceId": 628,
+    "reason": "2 movimientos bancarios candidatos, ambiguo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "02/07/2026",
+      "ref": "C1-32",
+      "counterparty": "FABBI FRANCO",
+      "importe": -2000000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 32
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "02/07/2026",
+      "ref": "A2-4682",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -7260000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4682
+    },
+    "invoiceId": 624,
+    "bankTxnId": 2460,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "02/07/2026",
+      "ref": "C1-14",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -404500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 14
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "02/07/2026",
+      "ref": "C1-1",
+      "counterparty": "FONTAL MATIAS NICOLAS",
+      "importe": -1032500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 1
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "02/07/2026",
+      "ref": "C1-25",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1002500
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 25
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "02/07/2026",
+      "ref": "C1-18",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1496750
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 18
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Julio 2026",
+      "fecha": "01/07/2026",
+      "ref": "A11-1350529",
+      "counterparty": "GOOGLE ARGENTINA S.R.L.",
+      "importe": -100000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 11,
+      "numero": 1350529
+    },
+    "invoiceId": 687,
+    "bankTxnId": 2482,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto 2026",
+      "fecha": "28/08/2026",
+      "ref": "A4-44213",
+      "counterparty": "ELECTRICIDAD SERET S.R.L.",
+      "importe": -357415.52
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 4,
+      "numero": 44213
+    },
+    "invoiceId": 750,
+    "bankTxnId": 2493,
+    "reason": "alguno de los dos ya tiene un match activo"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto 2026",
+      "fecha": "06/08/2026",
+      "ref": "C3-26",
+      "counterparty": "PANERO FRANCO EMANUEL",
+      "importe": 500000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 3,
+      "numero": 26
+    },
+    "expectedSource": "afip_issued",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto 2026",
+      "fecha": "03/08/2026",
+      "ref": "C1-15",
+      "counterparty": "PICONE LUCIANA INES",
+      "importe": -500000
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 15
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto 2026",
+      "fecha": "03/08/2026",
+      "ref": "C1-27",
+      "counterparty": "CORDOBA CAMILO BENJAMIN",
+      "importe": -1222750
+    },
+    "decoded": {
+      "tipo": "C",
+      "ptoVta": 1,
+      "numero": 27
+    },
+    "expectedSource": "afip_received",
+    "reason": "no se encontró la factura ni por número de comprobante ni por nombre+monto"
+  },
+  {
+    "row": {
+      "sheet": "Especial Agosto 2026",
+      "fecha": "03/08/2026",
+      "ref": "A2-4743",
+      "counterparty": "VILLA CRED FINANCIERA SRL",
+      "importe": -7260000
+    },
+    "decoded": {
+      "tipo": "A",
+      "ptoVta": 2,
+      "numero": 4743
+    },
+    "invoiceId": 689,
+    "bankTxnId": 2588,
+    "reason": "alguno de los dos ya tiene un match activo"
+  }
+]

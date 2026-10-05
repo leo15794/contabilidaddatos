@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { ParseResult, ParsedRow, parseArDate, parseArNumber } from "./types";
+import { detectBankFeeCategory } from "../matching/exclusions";
 
 /**
  * Parser genérico de movimientos bancarios en CSV/Excel-exportado-a-CSV.
@@ -59,11 +60,19 @@ export function parseBankCsv(
       continue;
     }
 
+    const description = record[mapping.descriptionColumn] || "(sin descripción)";
+
     rows.push({
       date,
-      description: record[mapping.descriptionColumn] || "(sin descripción)",
+      description,
       amount,
       currency: "ARS",
+      // Impuestos/comisiones propias del banco, retiros de efectivo y
+      // transferencias entre cuentas del mismo titular nunca van a tener una
+      // factura o pago real con el que cruzar — se categorizan solos para
+      // que no queden como "sin conciliar" para siempre (mismos patrones que
+      // ya los excluían del motor de matching, ver matching/exclusions.ts).
+      category: detectBankFeeCategory(description),
       raw: record,
     });
   }
