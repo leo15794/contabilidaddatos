@@ -47,12 +47,6 @@ export async function getDashboardSummary(range: DateRange = {}) {
     .innerJoin(matches, eq(matches.id, matchItems.matchId))
     .where(eq(matches.status, "pending"));
 
-  const recentBatches = await db
-    .select()
-    .from(importBatches)
-    .orderBy(desc(importBatches.importedAt))
-    .limit(10);
-
   const allTxnIds = new Set(allTxns.map((t) => t.id));
 
   // % conciliado y pendientes de revisar, recortados al rango de fechas:
@@ -76,7 +70,6 @@ export async function getDashboardSummary(range: DateRange = {}) {
   // denominador del % conciliado para que ese número sea alcanzable al 100%.
   const categorizedTxns = allTxns.filter((t) => t.category);
   const categorizadosCount = categorizedTxns.length;
-  const categorizadosTotal = categorizedTxns.reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0);
   const pctDenominator = allTxns.length - categorizadosCount;
 
   return {
@@ -88,9 +81,37 @@ export async function getDashboardSummary(range: DateRange = {}) {
     pendingReviewCount: pendingMatchIdsInRange.size,
     ticketsSinFactura,
     categorizadosCount,
-    categorizadosTotal,
-    recentBatches,
   };
+}
+
+/**
+ * Movimientos bancarios categorizados a mano (impuestos, comisiones,
+ * honorarios, etc. — ver `detectBankFeeCategory` en
+ * `src/lib/matching/exclusions.ts`) agrupados por categoría, para mostrar en
+ * el Dashboard dónde "desaparecen" esos movimientos que ya no cuentan como
+ * "sin conciliar".
+ */
+export async function getCategorizedBreakdown(range: DateRange = {}) {
+  const dateConditions = [sql`${transactions.category} is not null`];
+  if (range.from) dateConditions.push(gte(transactions.date, range.from));
+  if (range.to) dateConditions.push(lte(transactions.date, range.to));
+
+  const rows = await db
+    .select({
+      category: transactions.category,
+      count: sql<number>`count(*)`,
+      total: sql<number>`sum(abs(${transactions.amount}))`,
+    })
+    .from(transactions)
+    .where(and(...dateConditions))
+    .groupBy(transactions.category)
+    .orderBy(sql`sum(abs(${transactions.amount})) desc`);
+
+  return rows.map((r) => ({
+    category: r.category as string,
+    count: Number(r.count),
+    total: Number(r.total),
+  }));
 }
 
 export async function getPendingMatches() {

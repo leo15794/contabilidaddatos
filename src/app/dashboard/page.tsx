@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { NavBar } from "@/components/nav-bar";
-import { getDashboardSummary } from "@/lib/queries";
+import { getDashboardSummary, getCategorizedBreakdown } from "@/lib/queries";
 import { ReconcileButton } from "./reconcile-button";
 import { Card, CardHeader, SourceBadge, Amount, EmptyState } from "@/components/ui";
 import {
@@ -9,22 +8,12 @@ import {
   IconCheckCircle,
   IconClock,
   IconAlertTriangle,
-  IconInbox,
   IconFileText,
 } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
 const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
-const fmtDateTime = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" });
-
-const SOURCE_LABELS: Record<string, string> = {
-  bank: "Banco",
-  card: "Tarjeta",
-  afip_issued: "AFIP emitidas",
-  afip_received: "AFIP recibidas",
-  ticket: "Ticket (WhatsApp)",
-};
 
 export default async function DashboardPage({
   searchParams,
@@ -48,7 +37,10 @@ export default async function DashboardPage({
   }
   const hasFilter = Boolean(from || to);
 
-  const summary = await getDashboardSummary({ from, to });
+  const [summary, categorizedBreakdown] = await Promise.all([
+    getDashboardSummary({ from, to }),
+    getCategorizedBreakdown({ from, to }),
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -109,15 +101,14 @@ export default async function DashboardPage({
               )}
               Mostrando movimientos {from ? `desde ${from.toLocaleDateString("es-AR")}` : ""}
               {from && to ? " " : ""}
-              {to ? `hasta ${to.toLocaleDateString("es-AR")}` : ""}. &quot;Importaciones recientes&quot; sigue
-              mostrando los últimos archivos subidos en general, sin filtrar.
+              {to ? `hasta ${to.toLocaleDateString("es-AR")}` : ""}.
             </p>
           )}
         </div>
       </div>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           <Stat
             label="Ingresos"
             value={fmt.format(summary.ingresos)}
@@ -147,12 +138,6 @@ export default async function DashboardPage({
             value={String(summary.ticketsSinFactura)}
             tone={summary.ticketsSinFactura > 0 ? "warning" : "neutral"}
             icon={<IconAlertTriangle width={17} height={17} />}
-          />
-          <Stat
-            label="Categorizados (sin conciliación)"
-            value={String(summary.categorizadosCount)}
-            tone="violet"
-            icon={<IconFileText width={17} height={17} />}
           />
         </div>
 
@@ -184,50 +169,32 @@ export default async function DashboardPage({
 
         <Card>
           <CardHeader
-            title="Importaciones recientes"
-            action={
-              <Link href="/importaciones" className="text-xs font-medium text-indigo-600 hover:text-indigo-800">
-                Ver todas →
-              </Link>
-            }
+            title="Movimientos categorizados"
+            subtitle="Impuestos, comisiones, retiros y demás movimientos internos del banco que ya no cuentan como 'sin conciliar'."
           />
-          {summary.recentBatches.length === 0 ? (
+          {categorizedBreakdown.length === 0 ? (
             <EmptyState
-              icon={<IconInbox width={20} height={20} />}
-              title="Todavía no importaste nada"
-              description={
-                <>
-                  Subí tu primer archivo de banco, tarjeta o AFIP para empezar a conciliar.
-                </>
-              }
-              action={
-                <a
-                  href="/import"
-                  className="mt-2 inline-flex rounded-xl bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-[0_8px_20px_-8px_rgba(79,70,229,.5)] hover:bg-indigo-700"
-                >
-                  Empezar a importar
-                </a>
-              }
+              icon={<IconFileText width={20} height={20} />}
+              title="No hay movimientos categorizados todavía"
+              description="Cuando se categorice un movimiento de banco (impuestos, comisiones, honorarios, etc.) va a aparecer acá agrupado por tipo."
             />
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
                 <tr>
-                  <th className="px-5 py-2.5 font-medium">Fecha</th>
-                  <th className="px-5 py-2.5 font-medium">Fuente</th>
-                  <th className="px-5 py-2.5 font-medium">Archivo</th>
-                  <th className="px-5 py-2.5 font-medium">Filas</th>
+                  <th className="px-5 py-2.5 font-medium">Categoría</th>
+                  <th className="px-5 py-2.5 font-medium">Movimientos</th>
+                  <th className="px-5 py-2.5 font-medium">Total</th>
                 </tr>
               </thead>
               <tbody>
-                {summary.recentBatches.map((b) => (
-                  <tr key={b.id} className="border-t border-slate-100 hover:bg-slate-50/80">
-                    <td className="px-5 py-3 text-slate-500">{fmtDateTime.format(b.importedAt)}</td>
+                {categorizedBreakdown.map((row) => (
+                  <tr key={row.category} className="border-t border-slate-100 hover:bg-slate-50/80">
+                    <td className="px-5 py-3 text-slate-700">{row.category}</td>
+                    <td className="px-5 py-3 text-slate-600">{row.count}</td>
                     <td className="px-5 py-3">
-                      <SourceBadge source={b.source} />
+                      <Amount value={row.total} />
                     </td>
-                    <td className="px-5 py-3 text-slate-700">{b.filename}</td>
-                    <td className="px-5 py-3 text-slate-600">{b.rowCount}</td>
                   </tr>
                 ))}
               </tbody>
