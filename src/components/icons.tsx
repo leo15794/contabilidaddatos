@@ -181,6 +181,14 @@ export function IconLock(props: IconProps) {
   );
 }
 
+export function IconTrendingUp(props: IconProps) {
+  return (
+    <svg {...base(props)}>
+      <path d="M3 17 9 11 13 15 21 7M21 7h-6M21 7v6" />
+    </svg>
+  );
+}
+
 export function IconScale(props: IconProps) {
   return (
     <svg {...base(props)}>

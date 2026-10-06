@@ -165,6 +165,82 @@ export async function getCategoryDetail(
   };
 }
 
+const INVESTMENTS_CATEGORY = "Movimientos de fondos / inversiones propias";
+
+/**
+ * Desglose de "Movimientos de fondos / inversiones propias" (plazo fijo +
+ * fondos comunes de inversión) en colocación/cobro y suscripción/rescate,
+ * para la página /inversiones.
+ *
+ * OJO con lo que esto puede y no puede decir:
+ * - Plazo fijo: colocación (sale plata) y cobro al vencimiento (vuelve
+ *   capital + interés) son eventos discretos que vemos completos en el
+ *   extracto, así que cobros-colocaciones es una ganancia aproximada
+ *   razonable. Pero si hay más cobros que colocaciones en los datos, es
+ *   porque algunos plazos fijos se constituyeron ANTES del rango de fechas
+ *   importado — ese cobro trae capital que no vemos salir en ningún lado, así
+ *   que la ganancia real de intereses es probablemente MENOR al número que
+ *   se muestra acá (`pfDesbalanceado` marca este caso).
+ * - Fondo común de inversión: no se puede calcular ganancia real con esto.
+ *   Suscripción/rescate es flujo de caja, no rendimiento — si rescatás menos
+ *   de lo que suscribiste es porque todavía tenés plata adentro del fondo
+ *   (que vale lo que vale hoy, un dato que no está en los movimientos
+ *   bancarios), no porque hayas perdido plata.
+ */
+export async function getInvestmentBreakdown() {
+  const rows = await db
+    .select({ description: transactions.description, amount: transactions.amount })
+    .from(transactions)
+    .where(eq(transactions.category, INVESTMENTS_CATEGORY));
+
+  const acc = {
+    pfColocaciones: { count: 0, total: 0 },
+    pfCobros: { count: 0, total: 0 },
+    fciSuscripciones: { count: 0, total: 0 },
+    fciRescates: { count: 0, total: 0 },
+    otros: { count: 0, total: 0 },
+  };
+
+  for (const r of rows) {
+    const amount = Number(r.amount);
+    const d = r.description;
+    if (/sol\.?\s*resc/i.test(d)) {
+      acc.fciRescates.count++;
+      acc.fciRescates.total += amount;
+    } else if (/liq\.?\s*susc/i.test(d)) {
+      acc.fciSuscripciones.count++;
+      acc.fciSuscripciones.total += amount;
+    } else if (/^cr\s*plazo\s*fijo/i.test(d)) {
+      acc.pfCobros.count++;
+      acc.pfCobros.total += amount;
+    } else if (/db\s*plazo\s*fijo/i.test(d)) {
+      acc.pfColocaciones.count++;
+      acc.pfColocaciones.total += amount;
+    } else {
+      acc.otros.count++;
+      acc.otros.total += amount;
+    }
+  }
+
+  const pfGananciaAprox = acc.pfCobros.total + acc.pfColocaciones.total; // colocaciones ya es negativo
+  const fciNeto = acc.fciRescates.total + acc.fciSuscripciones.total; // suscripciones ya es negativo
+
+  return {
+    plazoFijo: {
+      colocaciones: acc.pfColocaciones,
+      cobros: acc.pfCobros,
+      gananciaAprox: pfGananciaAprox,
+      desbalanceado: acc.pfCobros.count !== acc.pfColocaciones.count,
+    },
+    fci: {
+      suscripciones: acc.fciSuscripciones,
+      rescates: acc.fciRescates,
+      neto: fciNeto,
+    },
+    otros: acc.otros,
+  };
+}
+
 export async function getPendingMatches() {
   const pending = await db
     .select()
