@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { NavBar } from "@/components/nav-bar";
 import { getDashboardSummary, getCategorizedBreakdown } from "@/lib/queries";
 import { ReconcileButton } from "./reconcile-button";
@@ -164,7 +165,7 @@ export default async function DashboardPage({
         <Card>
           <CardHeader
             title="Movimientos categorizados"
-            subtitle="Impuestos, comisiones, retiros y demás movimientos internos del banco que ya no cuentan como 'sin conciliar'."
+            subtitle="Impuestos, comisiones, retiros y demás movimientos internos del banco que ya no cuentan como 'sin conciliar'. Click en una fila para ver el detalle mes a mes."
           />
           {categorizedBreakdown.length === 0 ? (
             <EmptyState
@@ -183,15 +184,31 @@ export default async function DashboardPage({
               </thead>
               <tbody>
                 {categorizedBreakdown.map((row) => (
-                  <tr key={row.category} className="border-t border-slate-100 hover:bg-slate-50/80">
-                    <td className="px-5 py-3 text-slate-700">{row.category}</td>
-                    <td className="px-5 py-3 text-slate-600">{row.count}</td>
+                  <tr key={row.category} className="group border-t border-slate-100 hover:bg-slate-50/80">
+                    <td className="p-0">
+                      <Link
+                        href={`/categorizados/${encodeURIComponent(row.category)}`}
+                        className="block px-5 py-3 text-slate-700 group-hover:text-indigo-600"
+                      >
+                        {row.category}
+                      </Link>
+                    </td>
+                    <td className="p-0">
+                      <Link href={`/categorizados/${encodeURIComponent(row.category)}`} className="block px-5 py-3 text-slate-600">
+                        {row.count}
+                      </Link>
+                    </td>
                     {/* Monto en valor absoluto (ver getCategorizedBreakdown) — no es un
                         ingreso ni un egreso real, es la magnitud de lo categorizado, así
                         que va en gris neutro y no con el verde/rojo de <Amount> (que
                         confundiría "categorizado" con "plata que entró"). */}
-                    <td className="whitespace-nowrap px-5 py-3 font-medium tabular-nums text-slate-700">
-                      {fmt.format(row.total)}
+                    <td className="p-0">
+                      <Link
+                        href={`/categorizados/${encodeURIComponent(row.category)}`}
+                        className="block whitespace-nowrap px-5 py-3 font-medium tabular-nums text-slate-700"
+                      >
+                        {fmt.format(row.total)}
+                      </Link>
                     </td>
                   </tr>
                 ))}

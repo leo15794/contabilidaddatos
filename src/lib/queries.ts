@@ -114,6 +114,57 @@ export async function getCategorizedBreakdown(range: DateRange = {}) {
   }));
 }
 
+/**
+ * Detalle de una categoría puntual (ej. "Retiros de efectivo") para la
+ * página /categorizados/[categoria]: desglose mes a mes (para ver de un
+ * vistazo si un mes tuvo más retiros/comisiones que otro) + la lista
+ * completa de movimientos, paginada porque categorías como "Impuestos y
+ * comisiones bancarias" tienen miles de filas.
+ */
+export async function getCategoryDetail(
+  category: string,
+  { page = 1, pageSize = 50 }: { page?: number; pageSize?: number } = {},
+) {
+  const whereCategory = eq(transactions.category, category);
+
+  const monthly = await db
+    .select({
+      month: sql<string>`to_char(${transactions.date}, 'YYYY-MM')`,
+      count: sql<number>`count(*)`,
+      total: sql<number>`sum(abs(${transactions.amount}))`,
+    })
+    .from(transactions)
+    .where(whereCategory)
+    .groupBy(sql`to_char(${transactions.date}, 'YYYY-MM')`)
+    .orderBy(sql`to_char(${transactions.date}, 'YYYY-MM') desc`);
+
+  const [{ count: totalCount, total: totalAmount }] = await db
+    .select({
+      count: sql<number>`count(*)`,
+      total: sql<number>`sum(abs(${transactions.amount}))`,
+    })
+    .from(transactions)
+    .where(whereCategory);
+
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(whereCategory)
+    .orderBy(desc(transactions.date))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  return {
+    monthly: monthly.map((m) => ({ month: m.month, count: Number(m.count), total: Number(m.total) })),
+    totalCount: Number(totalCount ?? 0),
+    totalAmount: Number(totalAmount ?? 0),
+    rows,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(Number(totalCount ?? 0) / pageSize)),
+  };
+}
+
 export async function getPendingMatches() {
   const pending = await db
     .select()
