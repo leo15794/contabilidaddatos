@@ -29,4 +29,7 @@ export async function createManualMatchAction(transactionIds: number[]) {
 
   revalidatePath("/review");
   revalidatePath("/dashboard");
+  // "page" en vez del path exacto: revalida /sin-conciliar/[fuente] para
+  // cualquier fuente, no solo la que se estaba viendo cuando se unió a mano.
+  revalidatePath("/sin-conciliar/[fuente]", "page");
 }

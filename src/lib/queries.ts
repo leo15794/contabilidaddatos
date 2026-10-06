@@ -302,6 +302,97 @@ export async function getUnmatchedTransactions() {
     .orderBy(desc(transactions.date));
 }
 
+/**
+ * Lo mismo que getUnmatchedTransactions pero agrupado por fuente, para la
+ * página /review: en vez de tirar los ~1000 movimientos sin match en una
+ * sola lista infinita, mostrar "312 de tarjeta, 305 de AFIP recibidas..." y
+ * que cada uno lleve al detalle filtrado (ver getUnmatchedDetail).
+ */
+export async function getUnmatchedBreakdown() {
+  const matchedIds = db
+    .select({ id: matchItems.transactionId })
+    .from(matchItems)
+    .innerJoin(matches, eq(matches.id, matchItems.matchId))
+    .where(sql`${matches.status} != 'rejected'`);
+
+  const rows = await db
+    .select({
+      source: transactions.source,
+      count: sql<number>`count(*)`,
+      total: sql<number>`sum(abs(${transactions.amount}))`,
+    })
+    .from(transactions)
+    .where(and(sql`${transactions.id} not in (${matchedIds})`, isNull(transactions.category)))
+    .groupBy(transactions.source)
+    .orderBy(sql`count(*) desc`);
+
+  return rows.map((r) => ({ source: r.source, count: Number(r.count), total: Number(r.total) }));
+}
+
+export const UNMATCHED_SOURCES = ["bank", "card", "afip_issued", "afip_received", "ticket"] as const;
+export type UnmatchedSource = (typeof UNMATCHED_SOURCES)[number];
+
+/**
+ * Detalle de "sin ningún match" para una fuente puntual (ver
+ * getUnmatchedBreakdown): desglose mes a mes + lista paginada — misma idea
+ * que getCategoryDetail, pero para lo que todavía NO tiene categoría ni
+ * match (lo que sí necesita que se le cargue el comprobante/movimiento que
+ * le falta, a diferencia de lo categorizado).
+ */
+export async function getUnmatchedDetail(
+  source: UnmatchedSource,
+  { page = 1, pageSize = 50 }: { page?: number; pageSize?: number } = {},
+) {
+  const matchedIds = db
+    .select({ id: matchItems.transactionId })
+    .from(matchItems)
+    .innerJoin(matches, eq(matches.id, matchItems.matchId))
+    .where(sql`${matches.status} != 'rejected'`);
+
+  const whereClause = and(
+    eq(transactions.source, source),
+    isNull(transactions.category),
+    sql`${transactions.id} not in (${matchedIds})`,
+  );
+
+  const monthly = await db
+    .select({
+      month: sql<string>`to_char(${transactions.date}, 'YYYY-MM')`,
+      count: sql<number>`count(*)`,
+      total: sql<number>`sum(abs(${transactions.amount}))`,
+    })
+    .from(transactions)
+    .where(whereClause)
+    .groupBy(sql`to_char(${transactions.date}, 'YYYY-MM')`)
+    .orderBy(sql`to_char(${transactions.date}, 'YYYY-MM') desc`);
+
+  const [{ count: totalCount, total: totalAmount }] = await db
+    .select({
+      count: sql<number>`count(*)`,
+      total: sql<number>`sum(abs(${transactions.amount}))`,
+    })
+    .from(transactions)
+    .where(whereClause);
+
+  const rows = await db
+    .select()
+    .from(transactions)
+    .where(whereClause)
+    .orderBy(desc(transactions.date))
+    .limit(pageSize)
+    .offset((page - 1) * pageSize);
+
+  return {
+    monthly: monthly.map((m) => ({ month: m.month, count: Number(m.count), total: Number(m.total) })),
+    totalCount: Number(totalCount ?? 0),
+    totalAmount: Number(totalAmount ?? 0),
+    rows,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(Number(totalCount ?? 0) / pageSize)),
+  };
+}
+
 // --------------------------------------------------------------------------
 // Importaciones: listado de todos los archivos subidos (resúmenes de
 // tarjeta, CSV de banco, CSV de AFIP) con cuántos de sus movimientos ya

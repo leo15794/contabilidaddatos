@@ -290,13 +290,22 @@ async function runFuzzySuggestions(pool: Txn[], opts: Required<EngineOptions>) {
 
 export async function runMatchingEngine(options: EngineOptions = {}) {
   const opts = { ...DEFAULTS, ...options };
-  // Movimientos bancarios "internos" (impuestos, comisiones, transferencias
-  // entre cuentas propias) nunca deberían conciliar contra una factura o
-  // ticket — no son pagos a/de terceros. Se sacan del pool antes de correr
-  // cualquiera de las 3 estrategias, así ni se auto-confirman ni aparecen
-  // como sugerencia para revisar.
+  // Se sacan del pool, antes de correr cualquiera de las 3 estrategias, los
+  // movimientos que YA NO necesitan conciliar:
+  // - `t.category` seteado: categorizado a mano o automático (comisiones de
+  //   tarjeta, impuestos, retiros, honorarios, etc.) sin importar la fuente
+  //   — antes acá solo se chequeaba `isNonReconcilableBankMovement`, que
+  //   únicamente mira `source === 'bank'`, así que los categorizados de
+  //   TARJETA (ver fee-categories.ts) nunca se sacaban: quedaban dando
+  //   vueltas en cada corrida, sin poder matchear nunca con nada (no tienen
+  //   contraparte), e inflaban el contador de "sin resolver" con movimientos
+  //   que en realidad ya estaban resueltos.
+  // - `isNonReconcilableBankMovement`: movimientos bancarios "internos"
+  //   (impuestos, comisiones, transferencias entre cuentas propias) que
+  //   todavía no se categorizaron pero nunca van a tener una contraparte
+  //   real — no son pagos a/de terceros.
   const pool0 = (await getUnmatchedTransactions()).filter(
-    (t) => !isNonReconcilableBankMovement(t),
+    (t) => !t.category && !isNonReconcilableBankMovement(t),
   );
 
   const step1 = await runExact1to1(pool0, opts);
