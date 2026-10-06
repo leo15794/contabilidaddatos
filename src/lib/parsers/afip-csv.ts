@@ -52,7 +52,14 @@ export function parseAfipCsv(
 
   const col = {
     fecha: findColumn(headers, ["Fecha de Emision", "Fecha"]),
-    tipo: findColumn(headers, ["Tipo de Comprobante", "Tipo Comprobante"]),
+    // El export de "Mis Comprobantes" llama a esta columna simplemente
+    // "Tipo" (ej. "3 - Nota de Crédito A") — "Tipo de Comprobante" no
+    // aparece en ningún header real de AFIP que hayamos visto. Sin esta
+    // columna, isCreditNote da siempre false y las notas de crédito quedan
+    // con el signo invertido (AFIP las exporta con el importe en positivo
+    // siempre, sin importar el tipo — el signo correcto depende 100% de
+    // poder leer esta columna).
+    tipo: findColumn(headers, ["Tipo", "Tipo de Comprobante", "Tipo Comprobante"]),
     puntoVenta: findColumn(headers, ["Punto de Venta"]),
     numeroDesde: findColumn(headers, ["Numero Desde", "Nro Desde", "Numero"]),
     docTipo:
