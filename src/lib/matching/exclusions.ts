@@ -45,6 +45,7 @@ const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[] }[] = [
     patterns: [
       /extrac/i, // EXTRACCION / EXTRAC EFVO: retiros de efectivo, no son pagos a terceros
       /retiro\s*efectivo/i,
+      /retiro\s*caj/i, // "RETIRO CAJ.AH.": retiro de efectivo por caja de ahorro
       /cajero\s*autom/i, // extracción por cajero automático
     ],
   },

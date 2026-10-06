@@ -43,7 +43,7 @@ const GROUPS = [
   },
   {
     category: "Retiros de efectivo",
-    patterns: [/extrac/i, /retiro\s*efectivo/i, /cajero\s*autom/i],
+    patterns: [/extrac/i, /retiro\s*efectivo/i, /retiro\s*caj/i, /cajero\s*autom/i],
   },
   {
     category: "Transferencias entre cuentas propias",
