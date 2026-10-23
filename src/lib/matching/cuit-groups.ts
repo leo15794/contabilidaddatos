@@ -26,6 +26,14 @@ import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn 
 // Qué fracción del total facturado puede llegar como pago (retenciones, descuentos).
 const MIN_RATIO = 0.93;
 const MAX_RATIO = 1.005;
+// Algunos clientes (ej. Boldt S.A., CUIT 30500179151) pagan NETO DE IVA: el
+// depósito es ~82% de la factura (1/1,21 = 82,6% menos la retención de
+// Ganancias). Se ven en 3 de 3 depósitos de 2025: 82,0%, 82,0% y 82,8%. Esta
+// banda solo se usa para cobros, nunca se auto-confirma y pierde contra una
+// ventana de la banda normal, porque el 82% también podría ser una coincidencia.
+const VAT_MIN_RATIO = 0.805;
+const VAT_MAX_RATIO = 0.84;
+const VAT_BAND_PENALTY = 0.1;
 const MAX_GROUP_SIZE = 12;
 // Un pago cubre comprobantes emitidos hasta 120 días antes (o unos días después, por desfasajes de carga).
 const DOC_LOOKBACK_DAYS = 120;
@@ -37,7 +45,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 type Side = "cobros" | "pagos";
 
-type Window = { items: Txn[]; sum: number; ratio: number; skipped: number; penalty: number };
+type Window = { items: Txn[]; sum: number; ratio: number; skipped: number; penalty: number; netOfVat: boolean };
 
 function cuitOf(doc: Txn): string | null {
   return extractCuits(doc.counterparty)[0] ?? null;
@@ -54,6 +62,7 @@ function findBestWindow(
   expectedSign: number,
   isRejected: (t: Txn) => boolean,
   minSize: number,
+  allowNetOfVat = false,
 ): Window | null {
   let best: Window | null = null;
 
@@ -68,12 +77,14 @@ function findBestWindow(
       if (Math.sign(sum) !== expectedSign) continue;
 
       const ratio = ratioOf(sum);
-      if (ratio < MIN_RATIO || ratio > MAX_RATIO) continue;
+      const inNormalBand = ratio >= MIN_RATIO && ratio <= MAX_RATIO;
+      const inVatBand = allowNetOfVat && ratio >= VAT_MIN_RATIO && ratio <= VAT_MAX_RATIO;
+      if (!inNormalBand && !inVatBand) continue;
 
-      const penalty = Math.abs(1 - ratio) + skipped * SKIP_PENALTY;
+      const penalty = Math.abs(1 - ratio) + skipped * SKIP_PENALTY + (inNormalBand ? 0 : VAT_BAND_PENALTY);
       // En empate, la ventana que arranca primero (más vieja).
       if (!best || penalty < best.penalty - 1e-12) {
-        best = { items: items.slice(s, e + 1), sum, ratio, skipped, penalty };
+        best = { items: items.slice(s, e + 1), sum, ratio, skipped, penalty, netOfVat: !inNormalBand };
       }
     }
   }
@@ -129,11 +140,20 @@ export function runCuitGroups(
     const sortedPayments = payments.slice().sort(byDate);
     const expectedSign = side === "cobros" ? 1 : -1;
 
-    const pushSpec = (paymentsInGroup: Txn[], docsInGroup: Txn[], paymentTotal: number, docsTotal: number, ratio: number) => {
+    const pushSpec = (
+      paymentsInGroup: Txn[],
+      docsInGroup: Txn[],
+      paymentTotal: number,
+      docsTotal: number,
+      ratio: number,
+      netOfVat = false,
+    ) => {
       const diff = Math.abs(Math.abs(paymentTotal) - Math.abs(docsTotal));
       const n = paymentsInGroup.length + docsInGroup.length - 1;
-      const exact = diff <= opts.amountTolerance && n >= 2;
-      const conf = Math.max(35, Math.min(95, Math.round(92 - Math.abs(1 - ratio) * 350 - (n - 1) * 2)));
+      const exact = diff <= opts.amountTolerance && n >= 2 && !netOfVat;
+      const conf = netOfVat
+        ? Math.max(35, Math.min(60, Math.round(60 - (n - 1) * 2)))
+        : Math.max(35, Math.min(95, Math.round(92 - Math.abs(1 - ratio) * 350 - (n - 1) * 2)));
       const payLabel = side === "cobros" ? "depósito" : "pago";
       const docLabel = side === "cobros" ? "facturas emitidas" : "facturas recibidas";
       for (const t of [...paymentsInGroup, ...docsInGroup]) used.add(t.id);
@@ -143,7 +163,13 @@ export function runCuitGroups(
         confidence: exact ? 90 : conf,
         amountDiff: diff,
         transactionIds: [...paymentsInGroup, ...docsInGroup].map((t) => t.id),
-        note: `Grupo por CUIT ${cuit}: ${paymentsInGroup.length} ${payLabel}${paymentsInGroup.length > 1 ? "s" : ""} por $${fmt(paymentTotal)} contra ${docsInGroup.length} ${docLabel} (neto de notas de crédito) por $${fmt(docsTotal)} — el ${payLabel} es el ${(ratio * 100).toFixed(1)}% de lo facturado${exact ? "" : " (la diferencia suele ser retenciones)"}.`,
+        note: `Grupo por CUIT ${cuit}: ${paymentsInGroup.length} ${payLabel}${paymentsInGroup.length > 1 ? "s" : ""} por $${fmt(paymentTotal)} contra ${docsInGroup.length} ${docLabel} (neto de notas de crédito) por $${fmt(docsTotal)} — el ${payLabel} es el ${(ratio * 100).toFixed(1)}% de lo facturado${
+          netOfVat
+            ? " (≈ el importe neto de IVA: este cliente retiene el IVA al pagar — revisar antes de confirmar)"
+            : exact
+              ? ""
+              : " (la diferencia suele ser retenciones)"
+        }.`,
       });
     };
 
@@ -166,8 +192,9 @@ export function runCuitGroups(
         expectedSign,
         (d) => rejected.has(pairKey(p.id, d.id)),
         1,
+        side === "cobros",
       );
-      if (win) pushSpec([p], win.items, pAmount, win.sum, win.ratio);
+      if (win) pushSpec([p], win.items, pAmount, win.sum, win.ratio, win.netOfVat);
     }
 
     // B) varios pagos parciales cubren un solo comprobante (mínimo 2 pagos).

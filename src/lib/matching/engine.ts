@@ -4,6 +4,7 @@ import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 import { jaccardSimilarity } from "./text-similarity";
 import { isNonReconcilableBankMovement } from "./exclusions";
 import { extractCuits } from "./cuit";
+import { PENDING_PAYMENT_CATEGORY, releasePendingPaymentCategory } from "@/lib/categories";
 import { runCreditNotes } from "./credit-notes";
 import { runCuitGroups } from "./cuit-groups";
 import { runPaymentGroups } from "./payment-groups";
@@ -570,6 +571,9 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     // aparte (ver `getRejectedPairs`) para no volver a proponerlos.
     await tx.delete(matches).where(eq(matches.status, "pending"));
 
+    // Lo "Pendiente de pago" que ya se concilió deja de ser deuda abierta.
+    await releasePendingPaymentCategory((q) => tx.execute(q));
+
     // Se sacan del pool, antes de correr cualquiera de las 3 estrategias, los
     // movimientos que YA NO necesitan conciliar:
     // - `t.category` seteado: categorizado a mano o automático (comisiones de
@@ -584,8 +588,10 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     //   (impuestos, comisiones, transferencias entre cuentas propias) que
     //   todavía no se categorizaron pero nunca van a tener una contraparte
     //   real — no son pagos a/de terceros.
+    // - Excepción: "Pendientes de pago" (facturas que todavía no se pagaron) SÍ
+    //   entran al pool, porque el día que aparezca el pago tienen que cruzar.
     const pool0 = (await getUnmatchedTransactions(tx)).filter(
-      (t) => !t.category && !isNonReconcilableBankMovement(t),
+      (t) => (!t.category || t.category === PENDING_PAYMENT_CATEGORY) && !isNonReconcilableBankMovement(t),
     );
 
     const rejected = await getRejectedPairs(tx);
@@ -612,6 +618,9 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
       ...step3.specs,
     ]);
 
+    // Las facturas pendientes de pago que acaban de cruzar dejan de serlo.
+    await releasePendingPaymentCategory((q) => tx.execute(q));
+
     return {
       exactMatches: step1.specs.length,
       cardStatementMatches: step2.specs.length,
@@ -619,7 +628,8 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
       cuitGroupMatches: stepCuit.specs.length,
       paymentGroupMatches: stepPayment.specs.length,
       fuzzySuggestions: step3.specs.length,
-      stillUnmatched: step3.remaining.length,
+      // La deuda abierta no cuenta como "sin resolver": no hay un pago contra el cual cruzarla.
+      stillUnmatched: step3.remaining.filter((t) => t.category !== PENDING_PAYMENT_CATEGORY).length,
     };
   });
 }

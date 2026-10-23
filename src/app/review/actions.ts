@@ -5,6 +5,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { matches, matchItems, transactions } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
+import { releasePendingPaymentCategory } from "@/lib/categories";
 
 export async function resolveMatchAction(matchId: number, decision: "confirmed" | "rejected") {
   await requireSession();
@@ -12,6 +13,9 @@ export async function resolveMatchAction(matchId: number, decision: "confirmed" 
     .update(matches)
     .set({ status: decision, resolvedAt: new Date() })
     .where(eq(matches.id, matchId));
+
+  // Una factura "Pendiente de pago" que se acaba de confirmar deja de ser deuda abierta.
+  await releasePendingPaymentCategory((q) => db.execute(q));
 
   revalidatePath("/review");
   revalidatePath("/dashboard");
@@ -54,6 +58,8 @@ export async function createManualMatchAction(transactionIds: number[]): Promise
   });
 
   revalidatePath("/review");
+  await releasePendingPaymentCategory((q) => db.execute(q));
+
   revalidatePath("/dashboard");
   // "page" en vez del path exacto: revalida /sin-conciliar/[fuente] para
   // cualquier fuente, no solo la que se estaba viendo cuando se unió a mano.

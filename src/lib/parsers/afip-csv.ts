@@ -1,5 +1,6 @@
 import Papa from "papaparse";
 import { ParseResult, ParsedRow, parseArDate, parseArNumber } from "./types";
+import { BANK_CUIT, BANK_INVOICES_CATEGORY } from "@/lib/categories";
 
 /**
  * Parser para los CSV exportados desde "Mis Comprobantes" de AFIP
@@ -172,6 +173,9 @@ export function parseAfipCsv(
       amount,
       currency: "ARS", // el importe ya está en pesos (la moneda original queda en `raw`)
       counterparty: [cuit, razonSocial].filter(Boolean).join(" - ") || undefined,
+      // Las facturas del propio banco (liquidaciones por comisiones) no tienen un
+      // pago individual que cruzar: esa plata ya está en el extracto, categorizada.
+      category: direction === "received" && cuit === BANK_CUIT ? BANK_INVOICES_CATEGORY : undefined,
       raw: record,
     });
   }
