@@ -53,7 +53,7 @@ export async function importAfipAction(
   }
 
   return {
-    success: `Se importaron ${saved.rowCount} comprobantes ${direction === "issued" ? "emitidos" : "recibidos"}${saved.skipped > 0 ? ` (se omitieron ${saved.skipped} que ya estaban cargados)` : ""}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
+    success: `Se importaron ${saved.rowCount} comprobantes ${direction === "issued" ? "emitidos" : "recibidos"}${saved.skipped > 0 ? ` (se omitieron ${saved.skipped} que ya estaban cargados)` : ""}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.cuitGroupMatches} grupos por cliente (CUIT), ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
     warnings: result.warnings,
   };
 }
@@ -98,7 +98,7 @@ export async function importBankAction(
   }
 
   return {
-    success: `Se importaron ${saved.rowCount} movimientos de "${accountRef}"${saved.skipped > 0 ? ` (se omitieron ${saved.skipped} que ya estaban cargados)` : ""}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.cardStatementMatches} contra resúmenes de tarjeta, ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
+    success: `Se importaron ${saved.rowCount} movimientos de "${accountRef}"${saved.skipped > 0 ? ` (se omitieron ${saved.skipped} que ya estaban cargados)` : ""}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.cardStatementMatches} contra resúmenes de tarjeta, ${saved.reconcile.cuitGroupMatches} grupos por cliente (CUIT), ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
     warnings: result.warnings,
   };
 }

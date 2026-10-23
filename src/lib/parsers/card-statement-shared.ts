@@ -37,10 +37,16 @@ export type StatementExtraction = {
 // "27 Marzo 26" -> "27/03/2026" (parseArDate ya sabe parsear dd/mm/yyyy).
 // Si la fecha ya viene como dd/mm/aaaa (ej. desde una planilla Excel), esta
 // función la deja pasar sin tocarla.
+// Incluye las abreviaturas de 3 letras en español ("Dic", "Ago", "Ene", "Abr",
+// "Set"): el lector de PDF las devuelve así ("24 Dic 25"), y `new Date()` de JS
+// solo entiende las inglesas ("Dec", "Aug"), así que sin esto el cierre no se
+// interpretaba y los cargos del resumen quedaban con la fecha del día de carga.
 const MESES: Record<string, string> = {
   enero: "01", febrero: "02", marzo: "03", abril: "04", mayo: "05", junio: "06",
   julio: "07", agosto: "08", septiembre: "09", setiembre: "09", octubre: "10",
   noviembre: "11", diciembre: "12",
+  ene: "01", feb: "02", mar: "03", abr: "04", may: "05", jun: "06",
+  jul: "07", ago: "08", sep: "09", set: "09", oct: "10", nov: "11", dic: "12",
 };
 
 export function normalizeFecha(fecha: string): string {
@@ -70,6 +76,11 @@ export function buildRowsFromExtraction(extraction: StatementExtraction): {
   let needsReview = false;
   const rows: ParsedRow[] = [];
 
+  const cierreDate = parseArDate(normalizeFecha(extraction.cierre ?? ""));
+  if (!cierreDate && extraction.cierre) {
+    warnings.push(`No se pudo interpretar la fecha de cierre "${extraction.cierre}" — los cargos del resumen toman la fecha del último consumo.`);
+  }
+
   for (const ch of extraction.cardholders ?? []) {
     const sum = ch.consumos.reduce((acc, c) => acc + c.importe, 0);
     const diff = Math.abs(sum - ch.subtotalImpreso);
@@ -82,10 +93,23 @@ export function buildRowsFromExtraction(extraction: StatementExtraction): {
     }
 
     for (const c of ch.consumos) {
-      const date = parseArDate(normalizeFecha(c.fecha));
+      let date = parseArDate(normalizeFecha(c.fecha));
       if (!date) {
         warnings.push(`Fecha no interpretada en consumo de ${ch.name}: "${c.fecha}" (${c.descripcion}) — se omite.`);
         continue;
+      }
+      // Un consumo no puede ser posterior al cierre del resumen: casi seguro el
+      // lector se equivocó de año (pasó con "15 Dic" leído como 2026 en un
+      // resumen de 2025). Se corre un año atrás y se avisa.
+      if (cierreDate && date.getTime() > cierreDate.getTime() + 2 * 24 * 60 * 60 * 1000) {
+        const corrected = new Date(date);
+        corrected.setFullYear(corrected.getFullYear() - 1);
+        if (corrected.getTime() <= cierreDate.getTime() + 2 * 24 * 60 * 60 * 1000) {
+          warnings.push(
+            `Consumo de ${ch.name} "${c.descripcion}": la fecha ${c.fecha} es posterior al cierre del resumen — se corrigió el año automáticamente.`,
+          );
+          date = corrected;
+        }
       }
       rows.push({
         date,
@@ -109,9 +133,14 @@ export function buildRowsFromExtraction(extraction: StatementExtraction): {
     }
   }
 
+  // Los cargos generales no traen fecha propia: llevan la del cierre, o si esa
+  // no se pudo leer, la del último consumo (nunca la de hoy, que los dejaba
+  // meses fuera de la ventana de pago del resumen).
+  const lastConsumoDate = rows.reduce<Date | null>((max, r) => (!max || r.date > max ? r.date : max), null);
+
   for (const cargo of extraction.cargosVarios ?? []) {
     rows.push({
-      date: parseArDate(normalizeFecha(extraction.cierre ?? "")) ?? new Date(),
+      date: cierreDate ?? lastConsumoDate ?? new Date(),
       description: cargo.descripcion,
       amount: -Math.abs(cargo.importe),
       currency: "ARS",

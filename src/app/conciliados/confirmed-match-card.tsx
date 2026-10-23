@@ -13,6 +13,7 @@ type Txn = typeof transactions.$inferSelect;
 const STRATEGY_LABELS: Record<string, string> = {
   exact_1to1: "Automático · exacto",
   card_statement_1toN: "Automático · resumen de tarjeta",
+  cuit_group: "Grupo por cliente (CUIT)",
   fuzzy: "Automático · confirmado",
   manual: "Manual",
 };

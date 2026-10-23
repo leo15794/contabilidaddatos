@@ -36,6 +36,7 @@ export const matchStatusEnum = pgEnum("match_status", [
 export const matchStrategyEnum = pgEnum("match_strategy", [
   "exact_1to1",
   "card_statement_1toN",
+  "cuit_group",
   "fuzzy",
   "manual",
 ]);

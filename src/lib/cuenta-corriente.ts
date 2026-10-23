@@ -39,7 +39,8 @@ export type FacturaConEstado = {
 /** "33710121619 - ENFOQUE PROFESIONAL S.R.L." -> { cuit, denominacion } (ver cómo se arma en afip-csv.ts). */
 export function parseCounterparty(counterparty: string | null): { cuit: string | null; denominacion: string } {
   if (!counterparty) return { cuit: null, denominacion: "Sin identificar" };
-  const m = counterparty.match(/^(\d{11})\s*-\s*(.+)$/);
+  // Los comprobantes ya cargados traen el CUIT como número ("30717606392.0 - ..."), por eso el ".0" opcional.
+  const m = counterparty.match(/^(\d{11})(?:\.0+)?\s*-\s*(.+)$/);
   if (!m) return { cuit: null, denominacion: counterparty.trim() || "Sin identificar" };
   return { cuit: m[1], denominacion: m[2].trim() || "Sin identificar" };
 }

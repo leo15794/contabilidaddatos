@@ -1,9 +1,11 @@
-import { asc, eq, notInArray, sql } from "drizzle-orm";
+import { asc, eq, inArray, max, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { matchItems, matches, transactions } from "@/db/schema";
+import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 import { jaccardSimilarity } from "./text-similarity";
 import { isNonReconcilableBankMovement } from "./exclusions";
 import { extractCuits } from "./cuit";
+import { runCuitGroups } from "./cuit-groups";
+import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
 export type EngineOptions = {
   /** Ventana de días para considerar dos movimientos "cercanos" en fecha. */
@@ -20,7 +22,6 @@ const DEFAULTS: Required<EngineOptions> = {
   fuzzyAmountTolerancePct: 0.02,
 };
 
-type Txn = typeof transactions.$inferSelect;
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 // Un movimiento de pago (banco/tarjeta) solo puede conciliar contra un
@@ -61,12 +62,6 @@ async function getUnmatchedTransactions(tx: Tx): Promise<Txn[]> {
     .orderBy(asc(transactions.date));
 }
 
-// Pares de movimientos que ya se rechazaron a mano. Un match rechazado libera
-// a sus movimientos, y sin esto el motor volvía a proponer el mismo par idéntico
-// en la corrida siguiente. Un match de varios movimientos aporta todos sus pares.
-type RejectedPairs = Set<string>;
-const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
-
 async function getRejectedPairs(tx: Tx): Promise<RejectedPairs> {
   const rows = await tx
     .select({ matchId: matchItems.matchId, transactionId: matchItems.transactionId })
@@ -89,18 +84,6 @@ async function getRejectedPairs(tx: Tx): Promise<RejectedPairs> {
   }
   return pairs;
 }
-
-/** Un match calculado en memoria; se persiste todo junto al final de la corrida (ver `persistMatches`). */
-type MatchSpec = {
-  strategy: "exact_1to1" | "card_statement_1toN" | "fuzzy";
-  status: "auto" | "pending";
-  confidence: number;
-  amountDiff: number;
-  transactionIds: number[];
-  note?: string;
-};
-
-type StepResult = { specs: MatchSpec[]; remaining: Txn[] };
 
 // Los inserts van en tandas para no pasarse del máximo de parámetros de una
 // query de Postgres (65535).
@@ -232,17 +215,84 @@ function runExact1to1(pool: Txn[], opts: Required<EngineOptions>, rejected: Reje
 }
 
 /**
- * Estrategia 2: agrupa los consumos de tarjeta de un mismo lote de importación
- * (= un resumen) y los suma contra un pago bancario único dentro de una
- * ventana de fecha más amplia (el pago del resumen suele ser 10-20 días después
- * del cierre).
+ * Estrategia 2: un resumen de tarjeta (= un lote de importación) contra el
+ * pago único que el banco debita ("DB TARJETA DE CREDITO VISA").
+ *
+ * El pago cubre el resumen ENTERO, no solo los consumos que siguen libres: los
+ * cargos que ya se categorizaron (impuestos, comisiones) y los consumos que ya
+ * se conciliaron aparte con un ticket o una factura también están adentro. Por
+ * eso el total a comparar sale de TODAS las filas del lote (o, si el lote
+ * guardó el saldo del resumen, de ese saldo, que es el número que el banco
+ * realmente debita). Antes se sumaban solo las filas libres y el pago no
+ * cerraba nunca. El match une el pago con las filas que todavía están libres.
  */
 // Diferencia máxima (sobre el total del resumen) para sugerir un pago que no cierra exacto.
 const CARD_NEAR_TOTAL_PCT = 0.01;
+// Los resúmenes se leen fila por fila: el total puede diferir en centavos de redondeo del saldo impreso.
+const CARD_TOTAL_TOLERANCE = 1;
+// El pago suele debitarse 10-20 días después del último consumo; se deja margen de 2 días antes por si el cierre figura corrido.
+const CARD_PAYMENT_DAYS_BEFORE = 2;
+const CARD_PAYMENT_DAYS_AFTER = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function runCardStatementMatch(pool: Txn[], opts: Required<EngineOptions>, rejected: RejectedPairs): StepResult {
+export type CardBatchInfo = {
+  /** Suma con signo de TODAS las filas del lote, libres o no. */
+  total: number;
+  rowCount: number;
+  /** Saldo del resumen guardado al importar (en positivo), si el lector lo encontró. */
+  closing: number | null;
+  /** Fecha del último consumo del lote entero. */
+  lastDate: Date;
+};
+
+async function getCardBatchInfo(tx: Tx, batchIds: number[]): Promise<Map<number, CardBatchInfo>> {
+  const info = new Map<number, CardBatchInfo>();
+  if (batchIds.length === 0) return info;
+
+  const totals = await tx
+    .select({
+      batchId: transactions.batchId,
+      total: sql<string>`sum(${transactions.amount})`,
+      rowCount: sql<string>`count(*)`,
+      lastDate: max(transactions.date),
+    })
+    .from(transactions)
+    .where(inArray(transactions.batchId, batchIds))
+    .groupBy(transactions.batchId);
+
+  const mappings = await tx
+    .select({ id: importBatches.id, columnMapping: importBatches.columnMapping })
+    .from(importBatches)
+    .where(inArray(importBatches.id, batchIds));
+  const closingByBatch = new Map<number, number | null>();
+  for (const m of mappings) {
+    const cm = (m.columnMapping ?? {}) as Record<string, unknown>;
+    // El lector por texto guarda `closingBalance`, el visual `saldoActual`, a veces como string.
+    const raw = Number(cm.closingBalance ?? cm.saldoActual);
+    closingByBatch.set(m.id, Number.isFinite(raw) && raw !== 0 ? Math.abs(raw) : null);
+  }
+
+  for (const t of totals) {
+    if (!t.lastDate) continue;
+    info.set(t.batchId, {
+      total: Number(t.total),
+      rowCount: Number(t.rowCount),
+      closing: closingByBatch.get(t.batchId) ?? null,
+      lastDate: t.lastDate,
+    });
+  }
+  return info;
+}
+
+function runCardStatementMatch(
+  pool: Txn[],
+  opts: Required<EngineOptions>,
+  rejected: RejectedPairs,
+  batchInfo: Map<number, CardBatchInfo>,
+): StepResult {
   const used = new Set<number>();
   const specs: MatchSpec[] = [];
+  const tolerance = Math.max(opts.amountTolerance, CARD_TOTAL_TOLERANCE);
 
   const cardRows = pool.filter((t) => t.source === "card");
   const bankRows = pool.filter((t) => t.source === "bank");
@@ -253,59 +303,69 @@ function runCardStatementMatch(pool: Txn[], opts: Required<EngineOptions>, rejec
     byBatch.get(row.batchId)!.push(row);
   }
 
-  for (const [, rows] of byBatch) {
+  for (const [batchId, rows] of byBatch) {
+    const info = batchInfo.get(batchId);
+    if (!info || Math.abs(info.total) === 0) continue;
     if (rows.some((r) => used.has(r.id))) continue;
-    const total = rows.reduce((sum, r) => sum + Number(r.amount), 0);
-    const lastDate = rows.reduce((max, r) => (r.date > max ? r.date : max), rows[0].date);
 
-    const candidates = bankRows.filter((b) => {
-      if (used.has(b.id)) return false;
-      if (rows.some((r) => rejected.has(pairKey(r.id, b.id)))) return false;
-      const amountClose = Math.abs(Math.abs(Number(b.amount)) - Math.abs(total)) <= opts.amountTolerance;
-      // ventana más amplia: el pago puede ser hasta 25 días después del último consumo
-      const withinWindow = b.date >= lastDate && daysBetween(b.date, lastDate) <= 25;
-      return amountClose && withinWindow;
-    });
+    // Importes que puede tener el pago: el saldo impreso del resumen (el que de verdad debita el banco) o la suma de todas sus filas.
+    const expected = [
+      ...(info.closing !== null ? [{ amount: info.closing, label: "saldo del resumen" }] : []),
+      { amount: Math.abs(info.total), label: "suma de todos los consumos" },
+    ];
+
+    const eligible = (b: Txn) =>
+      !used.has(b.id) &&
+      Math.sign(Number(b.amount)) === Math.sign(info.total) &&
+      !rows.some((r) => rejected.has(pairKey(r.id, b.id))) &&
+      b.date.getTime() >= info.lastDate.getTime() - CARD_PAYMENT_DAYS_BEFORE * DAY_MS &&
+      b.date.getTime() <= info.lastDate.getTime() + CARD_PAYMENT_DAYS_AFTER * DAY_MS;
+
+    const exactHit = (b: Txn) => {
+      const diffs = expected.map((e) => ({ e, diff: Math.abs(Math.abs(Number(b.amount)) - e.amount) }));
+      return diffs.filter((d) => d.diff <= tolerance).sort((x, y) => x.diff - y.diff)[0] ?? null;
+    };
+
+    const candidates = bankRows.filter((b) => eligible(b) && exactHit(b));
 
     if (candidates.length === 1) {
       const bank = candidates[0];
+      const hit = exactHit(bank)!;
       for (const r of rows) used.add(r.id);
       used.add(bank.id);
       specs.push({
         strategy: "card_statement_1toN",
         status: "auto",
         confidence: 90,
-        amountDiff: Math.abs(Math.abs(Number(bank.amount)) - Math.abs(total)),
+        amountDiff: hit.diff,
         transactionIds: [...rows.map((r) => r.id), bank.id],
-        note: `Resumen de tarjeta (${rows.length} consumos) vs pago bancario`,
+        note: `Resumen de tarjeta (${rows.length} consumos libres de ${info.rowCount}) vs pago bancario — coincide con la ${hit.e.label}`,
       });
       continue;
     }
 
-    // Sin pago que cierre al centavo (resumen cargado en dos archivos, un
-    // cargo que no figura en el detalle, etc.): si hay UN solo pago bancario
-    // a menos del 1% del total en la misma ventana, se propone como
-    // sugerencia para revisar — nunca se auto-confirma.
-    if (candidates.length === 0 && Math.abs(total) > 0) {
-      const near = bankRows.filter((b) => {
-        if (used.has(b.id)) return false;
-        if (rows.some((r) => rejected.has(pairKey(r.id, b.id)))) return false;
-        const pct = Math.abs(Math.abs(Number(b.amount)) - Math.abs(total)) / Math.abs(total);
-        const withinWindow = b.date >= lastDate && daysBetween(b.date, lastDate) <= 25;
-        return pct <= CARD_NEAR_TOTAL_PCT && withinWindow;
-      });
+    // Sin pago que cierre (resumen cargado en dos archivos, un cargo que no
+    // figura en el detalle, etc.): si hay UN solo pago bancario a menos del 1%
+    // del total en la misma ventana, se propone como sugerencia para revisar —
+    // nunca se auto-confirma.
+    if (candidates.length === 0) {
+      const base = expected[0].amount;
+      const near = bankRows.filter(
+        (b) => eligible(b) && Math.abs(Math.abs(Number(b.amount)) - base) / base <= CARD_NEAR_TOTAL_PCT,
+      );
 
       if (near.length === 1) {
         const bank = near[0];
+        const diff = Math.abs(Math.abs(Number(bank.amount)) - base);
         for (const r of rows) used.add(r.id);
         used.add(bank.id);
         specs.push({
           strategy: "card_statement_1toN",
           status: "pending",
           confidence: 60,
-          amountDiff: Math.abs(Math.abs(Number(bank.amount)) - Math.abs(total)),
+          amountDiff: diff,
           transactionIds: [...rows.map((r) => r.id), bank.id],
-          note: `Sugerencia automática — resumen de tarjeta (${rows.length} consumos) vs pago bancario que NO cierra exacto (diferencia de ${Math.abs(Math.abs(Number(bank.amount)) - Math.abs(total)).toFixed(2)}). Revisar si falta algún consumo o cargo.`,
+          note: `Sugerencia automática — resumen de tarjeta (${rows.length} consumos libres de ${info.rowCount}) vs pago bancario que NO cierra exacto contra la ${expected[0].label} (diferencia de ${diff.toFixed(2)}). Revisar si falta algún consumo o cargo.`,
         });
       }
     }
@@ -489,14 +549,18 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const rejected = await getRejectedPairs(tx);
 
     const step1 = runExact1to1(pool0, opts, rejected);
-    const step2 = runCardStatementMatch(step1.remaining, opts, rejected);
-    const step3 = runFuzzySuggestions(step2.remaining, opts, rejected);
+    const cardBatchIds = [...new Set(step1.remaining.filter((t) => t.source === "card").map((t) => t.batchId))];
+    const cardBatchInfo = await getCardBatchInfo(tx, cardBatchIds);
+    const step2 = runCardStatementMatch(step1.remaining, opts, rejected, cardBatchInfo);
+    const stepCuit = runCuitGroups(step2.remaining, opts, rejected);
+    const step3 = runFuzzySuggestions(stepCuit.remaining, opts, rejected);
 
-    await persistMatches(tx, [...step1.specs, ...step2.specs, ...step3.specs]);
+    await persistMatches(tx, [...step1.specs, ...step2.specs, ...stepCuit.specs, ...step3.specs]);
 
     return {
       exactMatches: step1.specs.length,
       cardStatementMatches: step2.specs.length,
+      cuitGroupMatches: stepCuit.specs.length,
       fuzzySuggestions: step3.specs.length,
       stillUnmatched: step3.remaining.length,
     };

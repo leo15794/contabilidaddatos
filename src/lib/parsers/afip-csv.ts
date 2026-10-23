@@ -151,7 +151,8 @@ export function parseAfipCsv(
 
     const puntoVenta = col.puntoVenta ? record[col.puntoVenta] : "";
     const numero = col.numeroDesde ? record[col.numeroDesde] : "";
-    const cuit = col.docNro ? record[col.docNro] : "";
+    // Excel/AFIP a veces exportan el CUIT como número ("30717606392.0"): se saca el ".0".
+    const cuit = col.docNro ? (record[col.docNro] ?? "").replace(/\.0+$/, "") : "";
     const razonSocial = col.denominacion ? record[col.denominacion] : "";
 
     const description = [tipo, puntoVenta && numero ? `${puntoVenta}-${numero}` : null, razonSocial]
