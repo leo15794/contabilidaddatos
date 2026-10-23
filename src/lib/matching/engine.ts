@@ -49,10 +49,23 @@ function canSourcesMatch(a: string, b: string): boolean {
 // facturas recibidas: las transferencias del banco sí se pagan semanas después.
 const CARD_INVOICE_MAX_DAYS = 2;
 
+// Y por la misma razón, el importe: el total de una factura de estación de
+// servicio se arma sumando neto + impuestos y casi nunca coincide al centavo con
+// el voucher de la tarjeta (en la planilla de Leo, 39 de 43 pares correctos
+// difieren entre $0,01 y $0,75). Con la tolerancia de 1 centavo esos pares
+// quedaban como sugerencias en vez de conciliarse solos.
+const CARD_INVOICE_AMOUNT_TOLERANCE = 1;
+
+function isCardVsInvoice(sourceA: string, sourceB: string): boolean {
+  return (sourceA === "card" && sourceB === "afip_received") || (sourceA === "afip_received" && sourceB === "card");
+}
+
 function maxDaysBetween(sourceA: string, sourceB: string, fallback: number): number {
-  const cardVsInvoice =
-    (sourceA === "card" && sourceB === "afip_received") || (sourceA === "afip_received" && sourceB === "card");
-  return cardVsInvoice ? Math.min(CARD_INVOICE_MAX_DAYS, fallback) : fallback;
+  return isCardVsInvoice(sourceA, sourceB) ? Math.min(CARD_INVOICE_MAX_DAYS, fallback) : fallback;
+}
+
+function exactAmountTolerance(sourceA: string, sourceB: string, base: number): number {
+  return isCardVsInvoice(sourceA, sourceB) ? Math.max(base, CARD_INVOICE_AMOUNT_TOLERANCE) : base;
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -162,7 +175,8 @@ function runExact1to1(pool: Txn[], opts: Required<EngineOptions>, rejected: Reje
     if (bucket) bucket.push(t);
     else byCents.set(key, [t]);
   }
-  const spanCents = Math.ceil(opts.amountTolerance * 100) + 1;
+  // Hasta dónde mirar baldes vecinos: cubre también la tolerancia mayor de tarjeta contra factura recibida.
+  const spanCents = Math.ceil(Math.max(opts.amountTolerance, CARD_INVOICE_AMOUNT_TOLERANCE) * 100) + 1;
 
   // Primero los pagos (banco/tarjeta), así un pago con factura + ticket se
   // resuelve como match de tres antes de que la factura lo "robe" sola.
@@ -188,7 +202,8 @@ function runExact1to1(pool: Txn[], opts: Required<EngineOptions>, rejected: Reje
         const amountB = Number(b.amount);
 
         const sameSign = Math.sign(amountA) === Math.sign(amountB);
-        const amountClose = Math.abs(Math.abs(amountA) - Math.abs(amountB)) <= opts.amountTolerance;
+        const amountClose =
+          Math.abs(Math.abs(amountA) - Math.abs(amountB)) <= exactAmountTolerance(a.source, b.source, opts.amountTolerance);
         const dateClose = daysBetween(a.date, b.date) <= maxDaysBetween(a.source, b.source, opts.dateWindowDays);
 
         if (sameSign && amountClose && dateClose) candidates.push(b);
