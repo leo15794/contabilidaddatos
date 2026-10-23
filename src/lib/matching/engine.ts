@@ -38,6 +38,21 @@ function canSourcesMatch(a: string, b: string): boolean {
   );
 }
 
+// Un consumo de tarjeta y la factura recibida de ese mismo gasto se emiten el
+// mismo día o a los pocos días: si pasaron más, lo normal es que la factura
+// todavía no esté cargada, no que sea otra. Con la ventana general (5 días, y
+// hasta 15 en el fuzzy) el motor sugería facturas de otro proveedor solo
+// porque el importe era parecido (ej. APPYPF contra SANCHEZ DI MARE, 6 días
+// de diferencia y ninguna palabra en común). Vale solo para tarjeta contra
+// facturas recibidas: las transferencias del banco sí se pagan semanas después.
+const CARD_INVOICE_MAX_DAYS = 2;
+
+function maxDaysBetween(sourceA: string, sourceB: string, fallback: number): number {
+  const cardVsInvoice =
+    (sourceA === "card" && sourceB === "afip_received") || (sourceA === "afip_received" && sourceB === "card");
+  return cardVsInvoice ? Math.min(CARD_INVOICE_MAX_DAYS, fallback) : fallback;
+}
+
 function daysBetween(a: Date, b: Date): number {
   return Math.abs(a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24);
 }
@@ -172,7 +187,7 @@ function runExact1to1(pool: Txn[], opts: Required<EngineOptions>, rejected: Reje
 
         const sameSign = Math.sign(amountA) === Math.sign(amountB);
         const amountClose = Math.abs(Math.abs(amountA) - Math.abs(amountB)) <= opts.amountTolerance;
-        const dateClose = daysBetween(a.date, b.date) <= opts.dateWindowDays;
+        const dateClose = daysBetween(a.date, b.date) <= maxDaysBetween(a.source, b.source, opts.dateWindowDays);
 
         if (sameSign && amountClose && dateClose) candidates.push(b);
       }
@@ -446,7 +461,7 @@ function runFuzzySuggestions(pool: Txn[], opts: Required<EngineOptions>, rejecte
       const pctDiff = Math.abs(absA - Math.abs(amountB)) / Math.max(absA, 0.01);
       const daysDiff = daysBetween(a.date, b.date);
       if (pctDiff > maxPct) continue;
-      if (daysDiff > wideWindow) continue;
+      if (daysDiff > maxDaysBetween(a.source, b.source, wideWindow)) continue;
 
       const textScore = jaccardSimilarity(
         `${a.description} ${a.counterparty ?? ""}`,
