@@ -404,6 +404,32 @@ export async function getUnmatchedDetail(
   };
 }
 
+/**
+ * TODOS los movimientos sin match de una fuente (sin paginar), para agruparlos
+ * por proveedor/comercio y exportarlos. Mismo criterio que `getUnmatchedDetail`.
+ * Son cientos por fuente, así que se agrupan en memoria (ver
+ * `src/lib/unmatched-groups.ts`) en vez de duplicar esa lógica en SQL.
+ */
+export async function getUnmatchedAll(source: UnmatchedSource) {
+  const matchedIds = db
+    .select({ id: matchItems.transactionId })
+    .from(matchItems)
+    .innerJoin(matches, eq(matches.id, matchItems.matchId))
+    .where(sql`${matches.status} != 'rejected'`);
+
+  return db
+    .select()
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.source, source),
+        isNull(transactions.category),
+        sql`${transactions.id} not in (${matchedIds})`,
+      ),
+    )
+    .orderBy(desc(transactions.date));
+}
+
 // --------------------------------------------------------------------------
 // Importaciones: listado de todos los archivos subidos (resúmenes de
 // tarjeta, CSV de banco, CSV de AFIP) con cuántos de sus movimientos ya
