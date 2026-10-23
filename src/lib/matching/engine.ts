@@ -12,7 +12,7 @@ import { runSplitPayments } from "./split-payments";
 import { runCardNameMatches } from "./card-name";
 import { runInstallments } from "./installments";
 import { runPartialCardPayments } from "./partial-card";
-import { runCuitExactWide, runRoundExtra } from "./bank-invoice";
+import { runBankWideWindow, runCuitExactWide, runRoundExtra } from "./bank-invoice";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
 export type EngineOptions = {
@@ -72,6 +72,16 @@ function maxDaysBetween(sourceA: string, sourceB: string, fallback: number): num
 
 function exactAmountTolerance(sourceA: string, sourceB: string, base: number): number {
   return isCardVsInvoice(sourceA, sourceB) ? Math.max(base, CARD_INVOICE_AMOUNT_TOLERANCE) : base;
+}
+
+// Una transferencia puede pagar una factura hasta un mes después (la tarjeta no): para las
+// sugerencias fuzzy el banco contra factura mira hasta FUZZY_BANK_INVOICE_DAYS.
+const FUZZY_BANK_INVOICE_DAYS = 30;
+
+function fuzzyMaxDays(sourceA: string, sourceB: string, fallback: number): number {
+  const bankVsInvoice =
+    (sourceA === "bank" && sourceB.startsWith("afip")) || (sourceB === "bank" && sourceA.startsWith("afip"));
+  return bankVsInvoice ? Math.max(fallback, FUZZY_BANK_INVOICE_DAYS) : maxDaysBetween(sourceA, sourceB, fallback);
 }
 
 function daysBetween(a: Date, b: Date): number {
@@ -484,7 +494,7 @@ function runFuzzySuggestions(pool: Txn[], opts: Required<EngineOptions>, rejecte
       const pctDiff = Math.abs(absA - Math.abs(amountB)) / Math.max(absA, 0.01);
       const daysDiff = daysBetween(a.date, b.date);
       if (pctDiff > maxPct) continue;
-      if (daysDiff > maxDaysBetween(a.source, b.source, wideWindow)) continue;
+      if (daysDiff > fuzzyMaxDays(a.source, b.source, wideWindow)) continue;
 
       const textScore = jaccardSimilarity(
         `${a.description} ${a.counterparty ?? ""}`,
@@ -620,7 +630,9 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const stepPayment = runPaymentGroups(stepCuit.remaining, opts, rejected);
     // Una factura pagada en 2-3 partes y consumos de tarjeta con el mismo nombre
     // que el proveedor: solo sugerencias, van antes del fuzzy genérico.
-    const stepSplit = runSplitPayments(stepPayment.remaining, rejected);
+    // Pago por transferencia hasta 45 días después de la factura (la tarjeta se queda en 2 días).
+    const stepBankWide = runBankWideWindow(stepPayment.remaining, rejected);
+    const stepSplit = runSplitPayments(stepBankWide.remaining, rejected);
     const stepCardName = runCardNameMatches(stepSplit.remaining, rejected);
     const stepPartial = runPartialCardPayments(stepCardName.remaining, rejected);
     const stepExtra = runRoundExtra(stepPartial.remaining, rejected);
@@ -634,6 +646,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
       ...stepCuitExact.specs,
       ...stepCuit.specs,
       ...stepPayment.specs,
+      ...stepBankWide.specs,
       ...stepSplit.specs,
       ...stepCardName.specs,
       ...stepPartial.specs,
@@ -645,7 +658,9 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     await releasePendingPaymentCategory((q) => tx.execute(q));
 
     return {
-      exactMatches: step1.specs.length + stepInstallments.specs.length + stepCuitExact.specs.length,
+      exactMatches: step1.specs.length + stepInstallments.specs.length +
+        stepCuitExact.specs.length +
+        stepBankWide.specs.filter((x) => x.status === "auto").length,
       cardStatementMatches: step2.specs.length,
       creditNoteMatches: stepCredit.specs.length,
       cuitGroupMatches: stepCuit.specs.length,
@@ -655,7 +670,8 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
         stepSplit.specs.length +
         stepCardName.specs.length +
         stepPartial.specs.length +
-        stepExtra.specs.length,
+        stepExtra.specs.length +
+        stepBankWide.specs.filter((x) => x.status === "pending").length,
       // La deuda abierta no cuenta como "sin resolver": no hay un pago contra el cual cruzarla.
       stillUnmatched: step3.remaining.filter((t) => t.category !== PENDING_PAYMENT_CATEGORY).length,
     };

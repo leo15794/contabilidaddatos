@@ -31,7 +31,7 @@ import { extractCuits } from "./cuit";
 // otra cuenta nuestra (compensación de saldo), no a un proveedor. OJO: el formato
 // "TRF MO CCDO DIST T - <CUIT>" NO entra acá a propósito — también se usa para
 // pagar proveedores desde otra cuenta, y esos sí tienen factura con la que cruzar.
-const OWN_CUITS = ["30717898733"];
+export const OWN_CUITS = ["30717898733"];
 
 const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[]; allowsCuit?: boolean }[] = [
   {
