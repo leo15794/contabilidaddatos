@@ -543,6 +543,16 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
   return db.transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(${sql.raw(String(ENGINE_LOCK_ID))})`);
 
+    // Las sugerencias pendientes (que nadie revisó todavía) se recalculan en
+    // cada corrida en vez de quedar congeladas: una sugerencia ocupa a sus
+    // movimientos, así que una sugerencia floja del motor viejo (ej. el pago a
+    // Aragno emparejado con la factura de NOSIS por tener un importe parecido)
+    // impedía que el motor nuevo viera la factura correcta del mismo importe,
+    // que quedaba libre para siempre. Lo ya decidido (confirmado, manual,
+    // automático, rechazado) no se toca; los pares rechazados se recuerdan
+    // aparte (ver `getRejectedPairs`) para no volver a proponerlos.
+    await tx.delete(matches).where(eq(matches.status, "pending"));
+
     // Se sacan del pool, antes de correr cualquiera de las 3 estrategias, los
     // movimientos que YA NO necesitan conciliar:
     // - `t.category` seteado: categorizado a mano o automático (comisiones de
