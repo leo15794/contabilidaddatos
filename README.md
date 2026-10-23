@@ -217,12 +217,11 @@ importación de ese archivo va a fallar — avisame si pasa y lo resolvemos
 - `src/lib/matching/engine.ts` — el motor de conciliación, 3 estrategias en
   cascada (exacta 1-a-1, tarjeta 1-a-N, fuzzy).
 - `src/app/import`, `src/app/dashboard`, `src/app/review` — las 3 pantallas.
-- `src/app/api/whatsapp/webhook/route.ts` — recibe los mensajes de WhatsApp.
-- `src/lib/whatsapp/` — cliente de la Graph API de Meta y verificación de
-  firma del webhook.
+- `src/app/api/tickets/ingest/route.ts` — recibe el webhook de OpenWA con las
+  fotos de tickets (firma HMAC).
 - `src/lib/tickets/extract.ts` — llamada a Claude para leer la foto del
   ticket.
-- `src/proxy.ts` — protege todas las rutas salvo `/login` y `/api/whatsapp`
+- `src/proxy.ts` — protege todas las rutas salvo `/login` y `/api/tickets/ingest`
   (Next.js 16 renombró `middleware.ts` a `proxy.ts`).
 
 Próximos pasos naturales cuando esto esté rodando un tiempo: afinar el parser

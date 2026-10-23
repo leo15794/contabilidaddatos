@@ -22,6 +22,10 @@ function normalizeHeader(h: string): string {
 function findColumn(
   headers: string[],
   candidates: string[],
+  // Para encabezados cortos y genéricos ("Tipo", "Moneda"): el match parcial
+  // agarraba cualquier columna que los contuviera ("Tipo Doc. Receptor",
+  // "Tipo Cambio") y leía datos de la columna equivocada.
+  exactOnly = false,
 ): string | undefined {
   const normalized = headers.map((h) => ({ raw: h, norm: normalizeHeader(h) }));
   for (const candidate of candidates) {
@@ -29,6 +33,7 @@ function findColumn(
     const exact = normalized.find((h) => h.norm === nc);
     if (exact) return exact.raw;
   }
+  if (exactOnly) return undefined;
   for (const candidate of candidates) {
     const nc = normalizeHeader(candidate);
     const partial = normalized.find((h) => h.norm.includes(nc));
@@ -59,7 +64,7 @@ export function parseAfipCsv(
     // con el signo invertido (AFIP las exporta con el importe en positivo
     // siempre, sin importar el tipo — el signo correcto depende 100% de
     // poder leer esta columna).
-    tipo: findColumn(headers, ["Tipo", "Tipo de Comprobante", "Tipo Comprobante"]),
+    tipo: findColumn(headers, ["Tipo", "Tipo de Comprobante", "Tipo Comprobante"], true),
     puntoVenta: findColumn(headers, ["Punto de Venta"]),
     numeroDesde: findColumn(headers, ["Numero Desde", "Nro Desde", "Numero"]),
     docTipo:
@@ -74,7 +79,8 @@ export function parseAfipCsv(
       direction === "issued"
         ? findColumn(headers, ["Denominacion Receptor"])
         : findColumn(headers, ["Denominacion Emisor"]),
-    moneda: findColumn(headers, ["Moneda"]),
+    moneda: findColumn(headers, ["Moneda"], true),
+    tipoCambio: findColumn(headers, ["Tipo Cambio", "Tipo de Cambio"], true),
     total: findColumn(headers, ["Imp. Total", "Imp Total", "Importe Total"]),
     // El export "detallado" de AFIP (el que trae el desglose de IVA por
     // alícuota) NO tiene ninguna columna de total — hay que sumarla. Para un
@@ -100,6 +106,7 @@ export function parseAfipCsv(
   }
 
   const rows: ParsedRow[] = [];
+  let foreignConverted = 0;
 
   for (const record of parsed.data) {
     const dateStr = col.fecha ? record[col.fecha] : undefined;
@@ -124,6 +131,24 @@ export function parseAfipCsv(
     const sign = isCreditNote ? -baseSign : baseSign;
     amount = Math.abs(amount) * sign;
 
+    // Comprobante en moneda extranjera: el importe viene en esa moneda, y el
+    // banco y la tarjeta están en pesos. Se convierte con el "Tipo Cambio" del
+    // propio comprobante para que los importes sean comparables (antes un
+    // comprobante de USD 100 quedaba como $100 y nunca podía conciliar).
+    const monedaRaw = (col.moneda ? record[col.moneda] ?? "" : "").trim().toUpperCase();
+    const isPesos = monedaRaw === "" || monedaRaw === "$" || monedaRaw === "PES" || monedaRaw === "ARS";
+    if (!isPesos) {
+      const tipoCambio = col.tipoCambio ? parseArNumber(record[col.tipoCambio]) : 0;
+      if (tipoCambio > 0) {
+        amount *= tipoCambio;
+        foreignConverted++;
+      } else {
+        warnings.push(
+          `Comprobante en moneda "${monedaRaw}" sin tipo de cambio: se cargó el importe sin convertir (${JSON.stringify(record[col.fecha!])}).`,
+        );
+      }
+    }
+
     const puntoVenta = col.puntoVenta ? record[col.puntoVenta] : "";
     const numero = col.numeroDesde ? record[col.numeroDesde] : "";
     const cuit = col.docNro ? record[col.docNro] : "";
@@ -137,10 +162,14 @@ export function parseAfipCsv(
       date,
       description: description || `Comprobante AFIP ${direction === "issued" ? "emitido" : "recibido"}`,
       amount,
-      currency: col.moneda ? record[col.moneda] || "ARS" : "ARS",
+      currency: "ARS", // el importe ya está en pesos (la moneda original queda en `raw`)
       counterparty: [cuit, razonSocial].filter(Boolean).join(" - ") || undefined,
       raw: record,
     });
+  }
+
+  if (foreignConverted > 0) {
+    warnings.push(`${foreignConverted} comprobantes en moneda extranjera se convirtieron a pesos con su tipo de cambio.`);
   }
 
   return { rows, warnings };

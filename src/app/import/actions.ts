@@ -5,6 +5,7 @@ import { parseAfipCsv } from "@/lib/parsers/afip-csv";
 import { parseBankCsv, BankColumnMapping } from "@/lib/parsers/bank-csv";
 import { saveImportAndReconcile, findDuplicateCardStatement } from "@/lib/import";
 import { ParsedRow } from "@/lib/parsers/types";
+import { requireSession } from "@/lib/auth/session";
 
 // `card-pdf.ts` carga pdf-parse -> pdfjs-dist, que al evaluarse referencia
 // `DOMMatrix` (un global de browser que no existe en el runtime Node de
@@ -23,6 +24,7 @@ export async function importAfipAction(
   _prev: ImportActionState | undefined,
   formData: FormData,
 ): Promise<ImportActionState> {
+  await requireSession();
   const file = formData.get("file") as File | null;
   const direction = String(formData.get("direction") ?? "received") as "issued" | "received";
 
@@ -46,8 +48,12 @@ export async function importAfipAction(
   revalidatePath("/review");
   revalidatePath("/import");
 
+  if (saved.rowCount === 0) {
+    return { error: `Ese archivo ya estaba cargado completo (${saved.skipped} comprobantes repetidos). No se importó nada.`, warnings: result.warnings };
+  }
+
   return {
-    success: `Se importaron ${saved.rowCount} comprobantes ${direction === "issued" ? "emitidos" : "recibidos"}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
+    success: `Se importaron ${saved.rowCount} comprobantes ${direction === "issued" ? "emitidos" : "recibidos"}${saved.skipped > 0 ? ` (se omitieron ${saved.skipped} que ya estaban cargados)` : ""}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
     warnings: result.warnings,
   };
 }
@@ -56,6 +62,7 @@ export async function importBankAction(
   _prev: ImportActionState | undefined,
   formData: FormData,
 ): Promise<ImportActionState> {
+  await requireSession();
   const file = formData.get("file") as File | null;
   const accountRef = String(formData.get("accountRef") ?? "");
   const mappingRaw = String(formData.get("mapping") ?? "");
@@ -86,8 +93,12 @@ export async function importBankAction(
   revalidatePath("/review");
   revalidatePath("/import");
 
+  if (saved.rowCount === 0) {
+    return { error: `Ese archivo ya estaba cargado completo (${saved.skipped} movimientos repetidos de "${accountRef}"). No se importó nada.`, warnings: result.warnings };
+  }
+
   return {
-    success: `Se importaron ${saved.rowCount} movimientos de "${accountRef}". Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.cardStatementMatches} contra resúmenes de tarjeta, ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
+    success: `Se importaron ${saved.rowCount} movimientos de "${accountRef}"${saved.skipped > 0 ? ` (se omitieron ${saved.skipped} que ya estaban cargados)` : ""}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.cardStatementMatches} contra resúmenes de tarjeta, ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
     warnings: result.warnings,
   };
 }
@@ -277,7 +288,8 @@ export async function importCardAction(
   _prev: ImportActionState | undefined,
   formData: FormData,
 ): Promise<ImportActionState> {
-  const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
+  await requireSession();
+  const files =formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
   const accountRef = String(formData.get("accountRef") ?? "");
   const yearRaw = String(formData.get("statementYear") ?? "");
 

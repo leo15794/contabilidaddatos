@@ -25,7 +25,9 @@
 // puede importar este archivo .ts) — si se agrega un patrón nuevo acá, hay
 // que agregarlo ahí también para que el catch-up manual y la categorización
 // automática de las próximas importaciones coincidan.
-const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[] }[] = [
+import { extractCuits } from "./cuit";
+
+const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[]; allowsCuit?: boolean }[] = [
   {
     category: "Impuestos y comisiones bancarias",
     patterns: [
@@ -43,7 +45,7 @@ const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[] }[] = [
   {
     category: "Retiros de efectivo",
     patterns: [
-      /extrac/i, // EXTRACCION / EXTRAC EFVO: retiros de efectivo, no son pagos a terceros
+      /\bextrac(?:cion|c\.?)?\b/i, // EXTRACCION / EXTRAC EFVO: retiros de efectivo, no son pagos a terceros (con límite de palabra para no agarrar "EXTRACTO", "EXTRACTORA"...)
       /retiro\s*efectivo/i,
       /retiro\s*caj/i, // "RETIRO CAJ.AH.": retiro de efectivo por caja de ahorro
       /cajero\s*autom/i, // extracción por cajero automático
@@ -71,19 +73,33 @@ const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[] }[] = [
     // sacarle la categoría a mano para que vuelva a conciliar contra ella.
     category: "Honorarios",
     patterns: [/pago\s*honorarios/i, /\bhonorarios\b/i],
+    allowsCuit: true,
   },
 ];
 
 type MatchableTxn = { source: string; description: string };
 
+// Los cargos internos del banco nunca nombran a un tercero; una transferencia
+// o pago a un proveedor sí trae su CUIT pegado en la descripción. Los patrones
+// de arriba son sueltos (/comision/, /retenci/...) y matchean en cualquier
+// parte del texto, así que un pago a un tercero con "comisión" o "retención" en
+// el concepto se categorizaba solo y dejaba de conciliar sin avisar. Si hay un
+// CUIT, se trata como movimiento real. "Honorarios" queda afuera de la guarda
+// a propósito: ya es un pago a un tercero y se categoriza aparte.
+function matchingGroup(description: string) {
+  const text = description.trim();
+  const hasCuit = extractCuits(text).length > 0;
+  return NON_RECONCILABLE_GROUPS.find(
+    (g) => (g.allowsCuit || !hasCuit) && g.patterns.some((re) => re.test(text)),
+  );
+}
+
 export function isNonReconcilableBankMovement(t: MatchableTxn): boolean {
   if (t.source !== "bank") return false;
-  return NON_RECONCILABLE_GROUPS.some((g) => g.patterns.some((re) => re.test(t.description)));
+  return matchingGroup(t.description) !== undefined;
 }
 
 /** Devuelve la categoría a asignar si la descripción matchea un movimiento bancario interno conocido, o null si parece un movimiento real. */
 export function detectBankFeeCategory(description: string): string | null {
-  const trimmed = description.trim();
-  const group = NON_RECONCILABLE_GROUPS.find((g) => g.patterns.some((re) => re.test(trimmed)));
-  return group?.category ?? null;
+  return matchingGroup(description)?.category ?? null;
 }

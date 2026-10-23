@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { setTransactionsCategory, updateTransactionAmount } from "@/lib/queries";
+import { requireSession } from "@/lib/auth/session";
 
 /**
  * Categoriza a mano un conjunto de movimientos (ej. "Gastos operativos") —
@@ -12,6 +13,7 @@ import { setTransactionsCategory, updateTransactionAmount } from "@/lib/queries"
  * Importaciones) sin necesidad de un match real.
  */
 export async function categorizeTransactionsAction(transactionIds: number[], category: string, batchId: number) {
+  await requireSession();
   const trimmed = category.trim();
   if (!trimmed || transactionIds.length === 0) return;
 
@@ -25,6 +27,7 @@ export async function categorizeTransactionsAction(transactionIds: number[], cat
 
 /** Deshace la categorización — el movimiento vuelve a necesitar conciliación normal. */
 export async function uncategorizeTransactionsAction(transactionIds: number[], batchId: number) {
+  await requireSession();
   if (transactionIds.length === 0) return;
 
   await setTransactionsCategory(transactionIds, null);
@@ -42,6 +45,7 @@ export async function uncategorizeTransactionsAction(transactionIds: number[], b
  * el botón "Re-conciliar" del dashboard.
  */
 export async function updateTransactionAmountAction(transactionId: number, absoluteAmount: number, batchId: number) {
+  await requireSession();
   if (!Number.isFinite(absoluteAmount) || absoluteAmount < 0) return;
 
   await updateTransactionAmount(transactionId, absoluteAmount);

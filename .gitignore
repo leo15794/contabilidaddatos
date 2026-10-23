@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# OpenWA (gateway de WhatsApp de terceros, se corre aparte en el VPS)
+/openwa/

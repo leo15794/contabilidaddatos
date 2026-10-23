@@ -48,4 +48,14 @@ export async function getSession(): Promise<boolean> {
   }
 }
 
+/**
+ * Las server actions son endpoints POST públicos por debajo: el proxy ya los
+ * filtra por cookie, pero cada action vuelve a verificar la sesión por su
+ * cuenta para no depender de una sola capa (si mañana cambia el `matcher` del
+ * proxy, las acciones que escriben en la base no quedan abiertas).
+ */
+export async function requireSession(): Promise<void> {
+  if (!(await getSession())) throw new Error("No autorizado.");
+}
+
 export { COOKIE_NAME };

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   pgEnum,
@@ -60,7 +61,15 @@ export const importBatches = pgTable("import_batches", {
   // Sirve para detectar el mismo resumen subido dos veces con nombres de
   // archivo distintos (ver `findDuplicateCardStatement` en `src/lib/import.ts`).
   statementDate: timestamp("statement_date", { withTimezone: false }),
-});
+},
+(t) => [
+  // Los tickets de WhatsApp guardan el `idempotencyKey` de OpenWA en
+  // `filename`: este índice hace que un reintento concurrente del webhook
+  // no pueda cargar el mismo ticket dos veces (ver /api/tickets/ingest).
+  uniqueIndex("import_batches_ticket_filename_idx")
+    .on(t.source, t.filename)
+    .where(sql`${t.source} = 'ticket'`),
+]);
 
 /** Cada movimiento normalizado, sin importar la fuente */
 export const transactions = pgTable(

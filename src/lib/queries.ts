@@ -1,18 +1,23 @@
-import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 
 export type DateRange = { from?: Date; to?: Date };
+
+// "Resuelto" = el movimiento está en algún match auto/confirmado/manual.
+// "Pendiente" = está en alguna sugerencia todavía sin revisar. Se calculan en
+// la base con EXISTS en vez de traer todos los matches a memoria.
+const hasMatchWithStatus = (statuses: SQL) =>
+  sql`exists (select 1 from match_items mi inner join matches m on m.id = mi.match_id where mi.transaction_id = ${transactions.id} and m.status in ${statuses})`;
+const isResolved = () => hasMatchWithStatus(sql`('auto','confirmed','manual')`);
+const isPending = () => hasMatchWithStatus(sql`('pending')`);
+const isCategorized = () => sql`(${transactions.category} is not null and ${transactions.category} <> '')`;
 
 export async function getDashboardSummary(range: DateRange = {}) {
   const dateConditions = [];
   if (range.from) dateConditions.push(gte(transactions.date, range.from));
   if (range.to) dateConditions.push(lte(transactions.date, range.to));
   const dateFilter = dateConditions.length > 0 ? and(...dateConditions) : undefined;
-
-  const allTxns = dateFilter
-    ? await db.select().from(transactions).where(dateFilter)
-    : await db.select().from(transactions);
 
   const bySource = {
     bank: { count: 0, total: 0 },
@@ -22,64 +27,68 @@ export async function getDashboardSummary(range: DateRange = {}) {
     ticket: { count: 0, total: 0 },
   } as Record<string, { count: number; total: number }>;
 
+  // Todo el resumen se agrega en la base: antes se traía la tabla completa de
+  // movimientos a memoria en cada visita al Dashboard.
+  const bySourceRows = await db
+    .select({
+      source: transactions.source,
+      count: sql<number>`count(*)`,
+      total: sql<number>`coalesce(sum(${transactions.amount}), 0)`,
+      ingresos: sql<number>`coalesce(sum(${transactions.amount}) filter (where ${transactions.amount} >= 0), 0)`,
+      egresos: sql<number>`coalesce(sum(${transactions.amount}) filter (where ${transactions.amount} < 0), 0)`,
+    })
+    .from(transactions)
+    .where(dateFilter)
+    .groupBy(transactions.source);
+
   let ingresos = 0;
   let egresos = 0;
-
-  for (const t of allTxns) {
-    const amount = Number(t.amount);
-    bySource[t.source].count++;
-    bySource[t.source].total += amount;
-    if (amount >= 0) ingresos += amount;
-    else egresos += amount;
+  let totalTxns = 0;
+  for (const r of bySourceRows) {
+    bySource[r.source] = { count: Number(r.count), total: Number(r.total) };
+    ingresos += Number(r.ingresos);
+    egresos += Number(r.egresos);
+    totalTxns += Number(r.count);
   }
-
-  // Nota: estos dos van sin filtrar por fecha (traen matchId también) para
-  // poder recortarlos contra `allTxns` (que sí está filtrado) abajo.
-  const matchedTxnIds = await db
-    .select({ id: matchItems.transactionId })
-    .from(matchItems)
-    .innerJoin(matches, eq(matches.id, matchItems.matchId))
-    .where(sql`${matches.status} in ('auto','confirmed','manual')`);
-
-  const pendingItems = await db
-    .select({ matchId: matchItems.matchId, transactionId: matchItems.transactionId })
-    .from(matchItems)
-    .innerJoin(matches, eq(matches.id, matchItems.matchId))
-    .where(eq(matches.status, "pending"));
-
-  const allTxnIds = new Set(allTxns.map((t) => t.id));
-
-  // % conciliado y pendientes de revisar, recortados al rango de fechas:
-  // una transacción/match solo cuenta si cae dentro de `allTxns` (ya filtrado).
-  const matchedIdSet = new Set(matchedTxnIds.map((r) => r.id));
-  const confirmedCount = allTxns.filter((t) => matchedIdSet.has(t.id)).length;
-  const pendingMatchIdsInRange = new Set(
-    pendingItems.filter((i) => allTxnIds.has(i.transactionId)).map((i) => i.matchId),
-  );
 
   // Tickets (fotos por WhatsApp) sin ningún match, con más de 3 días: probablemente
   // les falta la factura AFIP correspondiente — vale la pena avisar.
-  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
-  const ticketsSinFactura = allTxns.filter(
-    (t) => t.source === "ticket" && !matchedIdSet.has(t.id) && t.date <= threeDaysAgo,
-  ).length;
+  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [counts] = await db
+    .select({
+      confirmed: sql<number>`count(*) filter (where ${isResolved()})`,
+      categorized: sql<number>`count(*) filter (where ${isCategorized()})`,
+      ticketsSinFactura: sql<number>`count(*) filter (where ${transactions.source} = 'ticket' and not ${isResolved()} and ${transactions.date} <= ${threeDaysAgo}::timestamp)`,
+    })
+    .from(transactions)
+    .where(dateFilter);
+
+  // Sugerencias pendientes de revisar: matches distintos con al menos un
+  // movimiento dentro del rango de fechas.
+  const [pending] = await db
+    .select({ count: sql<number>`count(distinct ${matchItems.matchId})` })
+    .from(matchItems)
+    .innerJoin(matches, eq(matches.id, matchItems.matchId))
+    .innerJoin(transactions, eq(transactions.id, matchItems.transactionId))
+    .where(and(eq(matches.status, "pending"), dateFilter));
 
   // Movimientos categorizados a mano (ej. "Gastos operativos" — comisiones,
   // impuestos y cargos que cobra el banco directo en el resumen, sin ninguna
   // contraparte real para cruzar) no necesitan conciliación — se sacan del
   // denominador del % conciliado para que ese número sea alcanzable al 100%.
-  const categorizedTxns = allTxns.filter((t) => t.category);
-  const categorizadosCount = categorizedTxns.length;
-  const pctDenominator = allTxns.length - categorizadosCount;
+  const confirmedCount = Number(counts.confirmed);
+  const categorizadosCount = Number(counts.categorized);
+  const pctDenominator = totalTxns - categorizadosCount;
 
   return {
     bySource,
     ingresos,
     egresos,
-    totalTxns: allTxns.length,
+    totalTxns,
     conciliadoPct: pctDenominator <= 0 ? 100 : Math.round((confirmedCount / pctDenominator) * 100),
-    pendingReviewCount: pendingMatchIdsInRange.size,
-    ticketsSinFactura,
+    pendingReviewCount: Number(pending.count),
+    ticketsSinFactura: Number(counts.ticketsSinFactura),
     categorizadosCount,
   };
 }
@@ -241,6 +250,26 @@ export async function getInvestmentBreakdown() {
   };
 }
 
+/** Trae los movimientos de varios matches en UNA query (antes era una query por match). */
+async function withTransactions(matchRows: (typeof matches.$inferSelect)[]) {
+  if (matchRows.length === 0) return [];
+
+  const items = await db
+    .select({ matchId: matchItems.matchId, txn: transactions })
+    .from(matchItems)
+    .innerJoin(transactions, eq(transactions.id, matchItems.transactionId))
+    .where(inArray(matchItems.matchId, matchRows.map((m) => m.id)));
+
+  const byMatch = new Map<number, (typeof transactions.$inferSelect)[]>();
+  for (const i of items) {
+    const list = byMatch.get(i.matchId);
+    if (list) list.push(i.txn);
+    else byMatch.set(i.matchId, [i.txn]);
+  }
+
+  return matchRows.map((m) => ({ match: m, transactions: byMatch.get(m.id) ?? [] }));
+}
+
 export async function getPendingMatches() {
   const pending = await db
     .select()
@@ -248,16 +277,7 @@ export async function getPendingMatches() {
     .where(eq(matches.status, "pending"))
     .orderBy(desc(matches.createdAt));
 
-  const result = [];
-  for (const m of pending) {
-    const items = await db
-      .select({ txn: transactions })
-      .from(matchItems)
-      .innerJoin(transactions, eq(transactions.id, matchItems.transactionId))
-      .where(eq(matchItems.matchId, m.id));
-    result.push({ match: m, transactions: items.map((i) => i.txn) });
-  }
-  return result;
+  return withTransactions(pending);
 }
 
 /** Matches ya resueltos (confirmados a mano, cargados a mano, o auto-confirmados por el motor). */
@@ -274,16 +294,7 @@ export async function getConfirmedMatches(limit = 200) {
     .from(matches)
     .where(sql`${matches.status} in ('confirmed', 'manual', 'auto')`);
 
-  const result = [];
-  for (const m of resolved) {
-    const items = await db
-      .select({ txn: transactions })
-      .from(matchItems)
-      .innerJoin(transactions, eq(transactions.id, matchItems.transactionId))
-      .where(eq(matchItems.matchId, m.id));
-    result.push({ match: m, transactions: items.map((i) => i.txn) });
-  }
-  return { matches: result, totalCount };
+  return { matches: await withTransactions(resolved), totalCount };
 }
 
 export async function getUnmatchedTransactions() {
@@ -443,29 +454,33 @@ function bucketFor(
 export async function getImportBatchesWithStats() {
   const batches = await db.select().from(importBatches).orderBy(desc(importBatches.importedAt));
 
-  const txns = await db
-    .select({ id: transactions.id, batchId: transactions.batchId, category: transactions.category })
-    .from(transactions);
-
-  const matchRows = await db
-    .select({ transactionId: matchItems.transactionId, status: matches.status })
-    .from(matchItems)
-    .innerJoin(matches, eq(matches.id, matchItems.matchId));
-
-  const bestStatusByTxnId = new Map<number, string>();
-  for (const r of matchRows) {
-    const prev = bestStatusByTxnId.get(r.transactionId);
-    if (!prev || (STATUS_PRIORITY[r.status] ?? 0) > (STATUS_PRIORITY[prev] ?? 0)) {
-      bestStatusByTxnId.set(r.transactionId, r.status);
-    }
-  }
+  // Mismos baldes que `bucketFor` (categorizado > resuelto > pendiente > sin
+  // conciliar), contados en la base por lote en vez de traer todos los
+  // movimientos y todos los matches a memoria.
+  const rows = await db
+    .select({
+      batchId: transactions.batchId,
+      total: sql<number>`count(*)`,
+      categorizados: sql<number>`count(*) filter (where ${isCategorized()})`,
+      conciliados: sql<number>`count(*) filter (where not ${isCategorized()} and ${isResolved()})`,
+      pendientes: sql<number>`count(*) filter (where not ${isCategorized()} and not ${isResolved()} and ${isPending()})`,
+    })
+    .from(transactions)
+    .groupBy(transactions.batchId);
 
   const statsByBatch = new Map<number, BatchStats>();
-  for (const t of txns) {
-    const s = statsByBatch.get(t.batchId) ?? { ...EMPTY_STATS };
-    s.total++;
-    s[bucketFor(bestStatusByTxnId.get(t.id), t.category)]++;
-    statsByBatch.set(t.batchId, s);
+  for (const r of rows) {
+    const total = Number(r.total);
+    const categorizados = Number(r.categorizados);
+    const conciliados = Number(r.conciliados);
+    const pendientes = Number(r.pendientes);
+    statsByBatch.set(r.batchId, {
+      total,
+      categorizados,
+      conciliados,
+      pendientes,
+      sinConciliar: total - categorizados - conciliados - pendientes,
+    });
   }
 
   return batches.map((b) => ({ batch: b, stats: statsByBatch.get(b.id) ?? EMPTY_STATS }));

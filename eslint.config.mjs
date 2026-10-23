@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Gateway de WhatsApp (OpenWA) de terceros: se corre aparte en el VPS, no es código de esta app.
+    "openwa/**",
   ]),
 ]);
 

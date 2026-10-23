@@ -13,6 +13,7 @@ type Txn = typeof transactions.$inferSelect;
 export function UnmatchedList({ transactions }: { transactions: Txn[] }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function toggle(id: number) {
     setSelected((prev) => {
@@ -43,14 +44,16 @@ export function UnmatchedList({ transactions }: { transactions: Txn[] }) {
           disabled={selected.size < 2 || pending}
           onClick={() =>
             startTransition(async () => {
-              await createManualMatchAction(Array.from(selected));
-              setSelected(new Set());
+              const result = await createManualMatchAction(Array.from(selected));
+              setError(result.error ?? null);
+              if (!result.error) setSelected(new Set());
             })
           }
         >
           Unir seleccionados
         </Button>
       </div>
+      {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
       <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white">
         {transactions.map((t) => (
           <label

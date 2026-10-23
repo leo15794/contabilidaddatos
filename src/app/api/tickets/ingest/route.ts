@@ -48,6 +48,15 @@ type OpenWaWebhookPayload = {
   data: OpenWaMessageData;
 };
 
+// Leer la foto con Claude + conciliar + contestar por WhatsApp puede pasar los 10s por defecto de Vercel.
+export const maxDuration = 60;
+
+// postgres.js tira el error con `code`; según la versión de Drizzle puede venir envuelto en `cause`.
+function isUniqueViolation(err: unknown): boolean {
+  const code = (e: unknown) => (e as { code?: string } | null | undefined)?.code;
+  return code(err) === "23505" || code((err as { cause?: unknown } | null)?.cause) === "23505";
+}
+
 function verifySignature(rawBody: string, signatureHeader: string | null, secret: string): boolean {
   if (!signatureHeader) return false;
 
@@ -142,24 +151,33 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
-  const saved = await saveImportAndReconcile("ticket", idempotencyKey, extraction.merchant, {
-    rows: [
-      {
-        date: extraction.date!,
-        description: extraction.merchant || "Ticket sin nombre de comercio",
-        amount: -extraction.amount!, // un ticket es siempre un egreso
-        currency: "ARS",
-        counterparty: [extraction.cuit, extraction.merchant].filter(Boolean).join(" - ") || undefined,
-        raw: {
-          whatsappMessageId: data.id,
-          whatsappFrom: data.from,
-          openwaDeliveryId: payload.deliveryId,
-          extraction,
+  let saved: Awaited<ReturnType<typeof saveImportAndReconcile>>;
+  try {
+    saved = await saveImportAndReconcile("ticket", idempotencyKey, extraction.merchant, {
+      rows: [
+        {
+          date: extraction.date!,
+          description: extraction.merchant || "Ticket sin nombre de comercio",
+          amount: -extraction.amount!, // un ticket es siempre un egreso
+          currency: "ARS",
+          counterparty: [extraction.cuit, extraction.merchant].filter(Boolean).join(" - ") || undefined,
+          raw: {
+            whatsappMessageId: data.id,
+            whatsappFrom: data.from,
+            openwaDeliveryId: payload.deliveryId,
+            extraction,
+          },
         },
-      },
-    ],
-    warnings: [],
-  });
+      ],
+      warnings: [],
+    });
+  } catch (err) {
+    // Otra entrega del mismo mensaje ganó la carrera (índice único en
+    // import_batches para tickets): ya está cargado, no se duplica ni se
+    // vuelve a contestar por WhatsApp.
+    if (isUniqueViolation(err)) return Response.json({ ok: true });
+    throw err;
+  }
 
   const matchedNow = saved.reconcile.exactMatches + saved.reconcile.cardStatementMatches;
   const dateStr = extraction.date!.toLocaleDateString("es-AR");
