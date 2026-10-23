@@ -47,7 +47,11 @@ const GROUPS = [
   },
   {
     category: "Transferencias entre cuentas propias",
-    patterns: [/\bmismo\b/i],
+    patterns: [
+      /\bmismo\b/i,
+      /^transf:[a-z0-9]+-30717898733\s*$/i, // compensación de saldo con otra cuenta propia (CUIT propio)
+      /ccerr\s+datos\s+y\s+mer/i, // circuito cerrado de la propia empresa
+    ],
   },
   {
     category: "Movimientos de fondos / inversiones propias",

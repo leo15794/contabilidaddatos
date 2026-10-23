@@ -27,6 +27,12 @@
 // automática de las próximas importaciones coincidan.
 import { extractCuits } from "./cuit";
 
+// CUIT de la propia empresa: una transferencia "...-<CUIT propio>" va desde/hacia
+// otra cuenta nuestra (compensación de saldo), no a un proveedor. OJO: el formato
+// "TRF MO CCDO DIST T - <CUIT>" NO entra acá a propósito — también se usa para
+// pagar proveedores desde otra cuenta, y esos sí tienen factura con la que cruzar.
+const OWN_CUITS = ["30717898733"];
+
 const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[]; allowsCuit?: boolean }[] = [
   {
     category: "Impuestos y comisiones bancarias",
@@ -53,7 +59,14 @@ const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[]; allowsCui
   },
   {
     category: "Transferencias entre cuentas propias",
-    patterns: [/\bmismo\b/i], // "MISMO TIT", "CCDO MISMO": movimientos entre cuentas del mismo titular
+    patterns: [
+      /\bmismo\b/i, // "MISMO TIT", "CCDO MISMO": movimientos entre cuentas del mismo titular
+      new RegExp(`^transf:[a-z0-9]+-(?:${OWN_CUITS.join("|")})\\s*$`, "i"), // "TRANSF:2606190000643422659280-30717898733": compensación de saldo con otra cuenta propia
+      /ccerr\s+datos\s+y\s+mer/i, // "CCERR DATOS Y MER 30717898733 CIRC.CERRADO": circuito cerrado de la propia empresa
+    ],
+    // Estas descripciones traen el CUIT (el propio) pegado: la guarda de arriba
+    // que evita categorizar pagos a terceros no corresponde acá.
+    allowsCuit: true,
   },
   {
     category: "Movimientos de fondos / inversiones propias",
