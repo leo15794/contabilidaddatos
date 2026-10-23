@@ -12,6 +12,7 @@ import { runSplitPayments } from "./split-payments";
 import { runCardNameMatches } from "./card-name";
 import { runInstallments } from "./installments";
 import { runPartialCardPayments } from "./partial-card";
+import { runCardMultiInvoice } from "./card-multi";
 import { runBankWideWindow, runCuitExactWide, runRoundExtra } from "./bank-invoice";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
@@ -634,7 +635,9 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const stepBankWide = runBankWideWindow(stepPayment.remaining, rejected);
     const stepSplit = runSplitPayments(stepBankWide.remaining, rejected);
     const stepCardName = runCardNameMatches(stepSplit.remaining, rejected);
-    const stepPartial = runPartialCardPayments(stepCardName.remaining, rejected);
+    // Un consumo que cubre varias facturas del mismo carrito o comercio.
+    const stepCardMulti = runCardMultiInvoice(stepCardName.remaining, rejected);
+    const stepPartial = runPartialCardPayments(stepCardMulti.remaining, rejected);
     const stepExtra = runRoundExtra(stepPartial.remaining, rejected);
     const step3 = runFuzzySuggestions(stepExtra.remaining, opts, rejected);
 
@@ -649,6 +652,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
       ...stepBankWide.specs,
       ...stepSplit.specs,
       ...stepCardName.specs,
+      ...stepCardMulti.specs,
       ...stepPartial.specs,
       ...stepExtra.specs,
       ...step3.specs,
@@ -660,7 +664,8 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     return {
       exactMatches: step1.specs.length + stepInstallments.specs.length +
         stepCuitExact.specs.length +
-        stepBankWide.specs.filter((x) => x.status === "auto").length,
+        stepBankWide.specs.filter((x) => x.status === "auto").length +
+        stepCardMulti.specs.filter((x) => x.status === "auto").length,
       cardStatementMatches: step2.specs.length,
       creditNoteMatches: stepCredit.specs.length,
       cuitGroupMatches: stepCuit.specs.length,
@@ -671,7 +676,8 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
         stepCardName.specs.length +
         stepPartial.specs.length +
         stepExtra.specs.length +
-        stepBankWide.specs.filter((x) => x.status === "pending").length,
+        stepBankWide.specs.filter((x) => x.status === "pending").length +
+        stepCardMulti.specs.filter((x) => x.status === "pending").length,
       // La deuda abierta no cuenta como "sin resolver": no hay un pago contra el cual cruzarla.
       stillUnmatched: step3.remaining.filter((t) => t.category !== PENDING_PAYMENT_CATEGORY).length,
     };
