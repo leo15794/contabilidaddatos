@@ -10,6 +10,7 @@ import { runCuitGroups } from "./cuit-groups";
 import { runPaymentGroups } from "./payment-groups";
 import { runSplitPayments } from "./split-payments";
 import { runCardNameMatches } from "./card-name";
+import { runInstallments } from "./installments";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
 export type EngineOptions = {
@@ -599,9 +600,12 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const rejected = await getRejectedPairs(tx);
 
     const step1 = runExact1to1(pool0, opts, rejected);
-    const cardBatchIds = [...new Set(step1.remaining.filter((t) => t.source === "card").map((t) => t.batchId))];
+    // Compras en cuotas contra la factura por el total: antes del cruce con el
+    // pago del resumen, que se llevaría todas las cuotas libres del lote.
+    const stepInstallments = runInstallments(step1.remaining, rejected);
+    const cardBatchIds = [...new Set(stepInstallments.remaining.filter((t) => t.source === "card").map((t) => t.batchId))];
     const cardBatchInfo = await getCardBatchInfo(tx, cardBatchIds);
-    const step2 = runCardStatementMatch(step1.remaining, opts, rejected, cardBatchInfo);
+    const step2 = runCardStatementMatch(stepInstallments.remaining, opts, rejected, cardBatchInfo);
     // Las facturas anuladas por una nota de crédito se sacan antes de armar los
     // grupos por cliente: se cancelan entre sí y no tienen pago que cruzar.
     const stepCredit = runCreditNotes(step2.remaining, opts, rejected);
@@ -617,6 +621,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
 
     await persistMatches(tx, [
       ...step1.specs,
+      ...stepInstallments.specs,
       ...step2.specs,
       ...stepCredit.specs,
       ...stepCuit.specs,
@@ -630,7 +635,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     await releasePendingPaymentCategory((q) => tx.execute(q));
 
     return {
-      exactMatches: step1.specs.length,
+      exactMatches: step1.specs.length + stepInstallments.specs.length,
       cardStatementMatches: step2.specs.length,
       creditNoteMatches: stepCredit.specs.length,
       cuitGroupMatches: stepCuit.specs.length,
