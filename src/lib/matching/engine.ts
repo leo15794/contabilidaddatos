@@ -6,6 +6,7 @@ import { isNonReconcilableBankMovement } from "./exclusions";
 import { extractCuits } from "./cuit";
 import { runCreditNotes } from "./credit-notes";
 import { runCuitGroups } from "./cuit-groups";
+import { runPaymentGroups } from "./payment-groups";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
 export type EngineOptions = {
@@ -582,13 +583,17 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     // grupos por cliente: se cancelan entre sí y no tienen pago que cruzar.
     const stepCredit = runCreditNotes(step2.remaining, opts, rejected);
     const stepCuit = runCuitGroups(stepCredit.remaining, opts, rejected);
-    const step3 = runFuzzySuggestions(stepCuit.remaining, opts, rejected);
+    // Transferencias que no dicen a quién se pagaron (MacrOnline): una o varias
+    // facturas del mismo proveedor cuya suma cierra exacto.
+    const stepPayment = runPaymentGroups(stepCuit.remaining, opts, rejected);
+    const step3 = runFuzzySuggestions(stepPayment.remaining, opts, rejected);
 
     await persistMatches(tx, [
       ...step1.specs,
       ...step2.specs,
       ...stepCredit.specs,
       ...stepCuit.specs,
+      ...stepPayment.specs,
       ...step3.specs,
     ]);
 
@@ -597,6 +602,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
       cardStatementMatches: step2.specs.length,
       creditNoteMatches: stepCredit.specs.length,
       cuitGroupMatches: stepCuit.specs.length,
+      paymentGroupMatches: stepPayment.specs.length,
       fuzzySuggestions: step3.specs.length,
       stillUnmatched: step3.remaining.length,
     };

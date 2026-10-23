@@ -15,6 +15,7 @@ const STRATEGY_LABELS: Record<string, string> = {
   card_statement_1toN: "Automático · resumen de tarjeta",
   credit_note: "Anulada por nota de crédito",
   cuit_group: "Grupo por cliente (CUIT)",
+  payment_group: "Pago de varias facturas (mismo proveedor)",
   fuzzy: "Automático · confirmado",
   manual: "Manual",
 };

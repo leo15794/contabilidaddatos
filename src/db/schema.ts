@@ -38,6 +38,7 @@ export const matchStrategyEnum = pgEnum("match_strategy", [
   "card_statement_1toN",
   "credit_note",
   "cuit_group",
+  "payment_group",
   "fuzzy",
   "manual",
 ]);
