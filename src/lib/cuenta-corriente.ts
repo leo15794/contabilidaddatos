@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { matchItems, matches, transactions } from "@/db/schema";
+import { netAmount } from "@/lib/amounts";
 
 /**
  * Cuenta corriente de clientes (facturas emitidas) y proveedores (facturas
@@ -89,7 +90,9 @@ async function buildCuentaCorriente(source: Source): Promise<CuentaCorrienteRow[
       });
     }
     const row = byKey.get(key)!;
-    const amount = Math.abs(Number(t.amount));
+    // Con signo: las notas de crédito RESTAN de lo facturado (y de lo conciliado, si
+    // están conciliadas, ej. una factura anulada por su nota queda en cero).
+    const amount = netAmount(t.source, t.amount);
     row.facturado += amount;
     row.cantidadFacturas++;
     row.denomCounts.set(denominacion, (row.denomCounts.get(denominacion) ?? 0) + 1);

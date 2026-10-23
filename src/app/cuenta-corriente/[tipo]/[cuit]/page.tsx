@@ -7,6 +7,7 @@ import {
   getCuentaCorrienteDetalle,
   type Source,
 } from "@/lib/cuenta-corriente";
+import { netAmount } from "@/lib/amounts";
 import { Card, CardHeader, SourceBadge, StatCard } from "@/components/ui";
 import { IconArrowLeft, IconFileText, IconCheckCircle, IconScale, IconClock } from "@/components/icons";
 
@@ -89,7 +90,7 @@ export default async function CuentaCorrienteDetallePage({
         </div>
 
         <Card>
-          <CardHeader title="Comprobantes" subtitle="Cada factura con su estado y, si está conciliada, el pago cruzado." />
+          <CardHeader title="Comprobantes" subtitle="Cada factura con su estado y, si está conciliada, el pago cruzado. Las notas de crédito restan." />
           <table className="w-full text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
               <tr>
@@ -103,12 +104,17 @@ export default async function CuentaCorrienteDetallePage({
             <tbody>
               {facturas.map(({ txn, estado, pago }) => {
                 const style = ESTADO_STYLES[estado];
+                // Las notas de crédito restan: se muestran en negativo y en rojo.
+                const importe = netAmount(txn.source, txn.amount);
                 return (
                   <tr key={txn.id} className="border-t border-slate-100">
                     <td className="whitespace-nowrap px-6 py-3 text-slate-500">{fmtDate.format(txn.date)}</td>
                     <td className="px-6 py-3 text-slate-700">{txn.description}</td>
-                    <td className="whitespace-nowrap px-6 py-3 tabular-nums text-slate-700">
-                      {fmt.format(Math.abs(Number(txn.amount)))}
+                    <td
+                      className={`whitespace-nowrap px-6 py-3 tabular-nums ${importe < 0 ? "font-medium text-rose-600" : "text-slate-700"}`}
+                      title={importe < 0 ? "Nota de crédito: resta del saldo" : undefined}
+                    >
+                      {fmt.format(importe)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${style.bg} ${style.text}`}>
@@ -119,7 +125,7 @@ export default async function CuentaCorrienteDetallePage({
                       {pago ? (
                         <span className="flex items-center gap-1.5 text-xs">
                           <SourceBadge source={pago.source} />
-                          {fmtDate.format(pago.date)} · {fmt.format(Math.abs(Number(pago.amount)))}
+                          {fmtDate.format(pago.date)} · {fmt.format(netAmount(pago.source, pago.amount))}
                         </span>
                       ) : (
                         <span className="text-xs text-slate-400">—</span>

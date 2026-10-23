@@ -37,7 +37,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ fuen
     [source === "afip_received" ? "Proveedor" : source === "afip_issued" ? "Cliente" : "Comercio / destinatario"]: g.label,
     CUIT: g.cuit ?? "",
     Movimientos: g.count,
-    "Total (valor absoluto)": Math.round(g.total * 100) / 100,
+    [source === "afip_received" || source === "afip_issued" ? "Total neto de notas de crédito" : "Total (valor absoluto)"]:
+      Math.round(g.total * 100) / 100,
     Desde: isoDay(g.first),
     Hasta: isoDay(g.last),
   }));

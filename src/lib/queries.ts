@@ -4,6 +4,12 @@ import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 
 export type DateRange = { from?: Date; to?: Date };
 
+// Importe "en sentido de la deuda" para sumar en SQL (ver `netAmount` en
+// src/lib/amounts.ts): en los comprobantes de AFIP las notas de crédito RESTAN
+// (la recibida se da vuelta de signo para que toda factura sume), y en banco,
+// tarjeta y tickets se suma el valor absoluto como siempre.
+const NET_AMOUNT = sql`case ${transactions.source}::text when 'afip_issued' then ${transactions.amount} when 'afip_received' then -${transactions.amount} else abs(${transactions.amount}) end`;
+
 // "Resuelto" = el movimiento está en algún match auto/confirmado/manual.
 // "Pendiente" = está en alguna sugerencia todavía sin revisar. Se calculan en
 // la base con EXISTS en vez de traer todos los matches a memoria.
@@ -46,8 +52,16 @@ export async function getDashboardSummary(range: DateRange = {}) {
   let totalTxns = 0;
   for (const r of bySourceRows) {
     bySource[r.source] = { count: Number(r.count), total: Number(r.total) };
-    ingresos += Number(r.ingresos);
-    egresos += Number(r.egresos);
+    // Las notas de crédito restan: en las emitidas todo el neto va a ingresos
+    // (facturas menos notas) y en las recibidas a egresos (negativas menos las
+    // notas, que son positivas). Antes una nota de crédito recibida contaba
+    // como un ingreso y una emitida como un egreso.
+    if (r.source === "afip_issued") ingresos += Number(r.total);
+    else if (r.source === "afip_received") egresos += Number(r.total);
+    else {
+      ingresos += Number(r.ingresos);
+      egresos += Number(r.egresos);
+    }
     totalTxns += Number(r.count);
   }
 
@@ -330,7 +344,7 @@ export async function getUnmatchedBreakdown() {
     .select({
       source: transactions.source,
       count: sql<number>`count(*)`,
-      total: sql<number>`sum(abs(${transactions.amount}))`,
+      total: sql<number>`sum(${NET_AMOUNT})`,
     })
     .from(transactions)
     .where(and(sql`${transactions.id} not in (${matchedIds})`, isNull(transactions.category)))
@@ -370,7 +384,7 @@ export async function getUnmatchedDetail(
     .select({
       month: sql<string>`to_char(${transactions.date}, 'YYYY-MM')`,
       count: sql<number>`count(*)`,
-      total: sql<number>`sum(abs(${transactions.amount}))`,
+      total: sql<number>`sum(${NET_AMOUNT})`,
     })
     .from(transactions)
     .where(whereClause)
@@ -380,7 +394,7 @@ export async function getUnmatchedDetail(
   const [{ count: totalCount, total: totalAmount }] = await db
     .select({
       count: sql<number>`count(*)`,
-      total: sql<number>`sum(abs(${transactions.amount}))`,
+      total: sql<number>`sum(${NET_AMOUNT})`,
     })
     .from(transactions)
     .where(whereClause);

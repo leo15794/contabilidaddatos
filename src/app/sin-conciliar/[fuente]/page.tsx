@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { NavBar } from "@/components/nav-bar";
 import { getUnmatchedAll, getUnmatchedDetail, UNMATCHED_SOURCES, type UnmatchedSource } from "@/lib/queries";
 import { groupOf, groupTransactions } from "@/lib/unmatched-groups";
+import { netAmount } from "@/lib/amounts";
 import { Card, CardHeader, SourceBadge, StatCard } from "@/components/ui";
 import { IconArrowLeft, IconInbox, IconFileText } from "@/components/icons";
 import { UnmatchedList } from "@/app/review/unmatched-list";
@@ -112,7 +113,7 @@ export default async function SinConciliarDetailPage({
           <StatCard
             label="Total"
             value={fmt.format(
-              grupoRows ? grupoRows.reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0) : detail.totalAmount,
+              grupoRows ? grupoRows.reduce((acc, t) => acc + netAmount(t.source, t.amount), 0) : detail.totalAmount,
             )}
             tone="neutral"
             icon={<IconFileText width={17} height={17} />}

@@ -1,4 +1,5 @@
 import { extractCuits } from "@/lib/matching/cuit";
+import { netAmount } from "@/lib/amounts";
 import type { transactions } from "@/db/schema";
 
 type Txn = typeof transactions.$inferSelect;
@@ -74,7 +75,8 @@ export function groupTransactions(rows: Txn[]): TxnGroup[] {
 
   for (const t of rows) {
     const g = groupOf(t);
-    const amount = Math.abs(Number(t.amount));
+    // Neto de notas de crédito (restan) en los comprobantes de AFIP.
+    const amount = netAmount(t.source, t.amount);
     const existing = groups.get(g.key);
     if (existing) {
       existing.count++;
