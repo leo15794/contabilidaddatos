@@ -12,7 +12,7 @@ import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn 
  *   MERPAGO*MICROCHEAP $155.179 = $5.180 + $149.999 (las dos de Grupo Monaco).
  *
  * - De 2 a 4 facturas recibidas libres cuya suma cierra con el consumo (hasta $1 de
- *   diferencia) y emitidas cerca de la fecha del consumo (la tarjeta se cobra casi
+ *   diferencia; con 5 a 8 facturas, al centavo y solo como sugerencia) y emitidas cerca de la fecha del consumo (la tarjeta se cobra casi
  *   al instante; las facturas del mismo carrito salen el mismo día o a los pocos días).
  * - Si el consumo se puede armar de más de una forma no se adivina.
  * - Con 3 o más facturas, o con un total que no es redondo en miles, la suma exacta
@@ -21,6 +21,11 @@ import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn 
 const MAX_DAYS = 5;
 const MAX_SIZE = 4;
 const MAX_CANDIDATES = 14;
+// Carritos grandes: 5 a 8 facturas. Con tantas combinaciones posibles una suma "casi" exacta sale por
+// casualidad, así que se pide el centavo exacto, se mira menos candidatas y nunca se confirma sola.
+const BIG_MAX_SIZE = 8;
+const BIG_MAX_CANDIDATES = 16;
+const BIG_TOLERANCE_CENTS = 1;
 const TOLERANCE = 1;
 const MIN_CARD = 10000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -39,6 +44,30 @@ function combinations<T>(items: T[], size: number, visit: (combo: T[]) => void) 
     }
   };
   rec(0);
+}
+
+/** Subconjuntos de tamaño min..max de `cents` que suman `target` (± tol); corta al encontrar más de uno. */
+function findBigSubsets(cents: number[], target: number, tol: number, min: number, max: number): number[][] {
+  const order = cents.map((_, i) => i).sort((a, b) => cents[b] - cents[a]);
+  const suffix: number[] = new Array(order.length + 1).fill(0);
+  for (let i = order.length - 1; i >= 0; i--) suffix[i] = suffix[i + 1] + cents[order[i]];
+  const found: number[][] = [];
+  const picked: number[] = [];
+  const rec = (pos: number, sum: number) => {
+    if (found.length > 1) return;
+    if (picked.length >= min && Math.abs(sum - target) <= tol) found.push([...picked]);
+    if (picked.length >= max || pos >= order.length) return;
+    for (let i = pos; i < order.length; i++) {
+      const next = sum + cents[order[i]];
+      if (next > target + tol) continue; // ordenadas de mayor a menor: probar una más chica
+      if (next + suffix[i + 1] < target - tol) break; // ni sumando todo lo que queda alcanza
+      picked.push(order[i]);
+      rec(i + 1, next);
+      picked.pop();
+    }
+  };
+  rec(0, 0);
+  return found;
 }
 
 export function runCardMultiInvoice(pool: Txn[], rejected: RejectedPairs): StepResult {
@@ -74,6 +103,20 @@ export function runCardMultiInvoice(pool: Txn[], rejected: RejectedPairs): StepR
       });
       if (solutions.length > 0) break;
     }
+    let big = false;
+    if (solutions.length === 0) {
+      // Carrito grande: 5 a 8 facturas, al centavo.
+      const pool2 = candidates.length >= 5 ? candidates.slice(0, BIG_MAX_CANDIDATES) : [];
+      const hits = findBigSubsets(
+        pool2.map((inv) => Math.round(Math.abs(Number(inv.amount)) * 100)),
+        Math.round(target * 100),
+        BIG_TOLERANCE_CENTS,
+        MAX_SIZE + 1,
+        BIG_MAX_SIZE,
+      );
+      solutions = hits.map((idx) => idx.map((i) => pool2[i]));
+      big = true;
+    }
     if (solutions.length !== 1) {
       solutions = [];
       continue;
@@ -84,7 +127,7 @@ export function runCardMultiInvoice(pool: Txn[], rejected: RejectedPairs): StepR
     used.add(card.id);
 
     const round = target % 1000 === 0;
-    const auto = combo.length >= 3 || !round;
+    const auto = !big && (combo.length >= 3 || !round);
     const sum = combo.reduce((acc, inv) => acc + Math.abs(Number(inv.amount)), 0);
 
     specs.push({
@@ -94,7 +137,7 @@ export function runCardMultiInvoice(pool: Txn[], rejected: RejectedPairs): StepR
       amountDiff: Math.abs(sum - target),
       transactionIds: [card.id, ...combo.map((inv) => inv.id)],
       note: `Consumo de tarjeta que cubre ${combo.length} facturas separadas (compra con varias facturas): sus importes suman ${sum.toFixed(2)}${
-        auto ? "." : " — total redondo, revisar."
+        auto ? "." : big ? " — carrito grande (5 o más facturas), solo sugerencia: revisar." : " — total redondo, revisar."
       }`,
     });
   }
