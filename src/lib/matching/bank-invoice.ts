@@ -1,5 +1,6 @@
 import { extractCuits } from "./cuit";
 import { OWN_CUITS } from "./exclusions";
+import { bankNamesAnotherParty } from "./name-guard";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
 /**
@@ -106,7 +107,7 @@ export function runRoundExtra(pool: Txn[], rejected: RejectedPairs): StepResult 
       if (Math.min(offset, EXTRA_MULTIPLE - offset) > EXTRA_CENTS_TOLERANCE) continue;
       const days = (inv.date.getTime() - bank.date.getTime()) / DAY_MS;
       if (days > EXTRA_DAYS_AFTER || days < -EXTRA_DAYS_BEFORE) continue;
-      if (rejected.has(pairKey(bank.id, inv.id))) continue;
+      if (rejected.has(pairKey(bank.id, inv.id)) || bankNamesAnotherParty(bank, inv)) continue;
       // Una transferencia que ya nombra a OTRO proveedor no es de esta factura.
       const bankCuits = thirdPartyCuits(`${bank.description} ${bank.counterparty ?? ""}`);
       const invCuit = extractCuits(inv.counterparty)[0];
@@ -163,6 +164,7 @@ export function runBankWideWindow(pool: Txn[], rejected: RejectedPairs): StepRes
     const candidates = invoices
       .filter((inv) => {
         if (used.has(inv.id) || rejected.has(pairKey(bank.id, inv.id))) return false;
+        if (bankNamesAnotherParty(bank, inv)) return false;
         if (Math.abs(amount - Math.abs(Number(inv.amount))) > BANK_TOLERANCE) return false;
         const days = (bank.date.getTime() - inv.date.getTime()) / DAY_MS; // días que tardó el pago
         if (days < -BANK_DAYS_BEFORE || days > BANK_DAYS_AFTER) return false;

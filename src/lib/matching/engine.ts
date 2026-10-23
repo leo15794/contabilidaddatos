@@ -14,6 +14,7 @@ import { runInstallments } from "./installments";
 import { runPartialCardPayments } from "./partial-card";
 import { runCardMultiInvoice } from "./card-multi";
 import { runBankWideWindow, runCuitExactWide, runRoundExtra } from "./bank-invoice";
+import { bankNamesAnotherParty } from "./name-guard";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
 export type EngineOptions = {
@@ -214,6 +215,7 @@ function runExact1to1(pool: Txn[], opts: Required<EngineOptions>, rejected: Reje
         if (b.id === a.id || used.has(b.id)) continue;
         if (b.source === a.source) continue; // tiene que ser de otra fuente
         if (!canSourcesMatch(a.source, b.source)) continue; // y tiene que ser pago<->justificativo, no dos comprobantes propios
+        if (bankNamesAnotherParty(a.source === "bank" ? a : b, a.source === "bank" ? b : a)) continue; // pago a Google no es de la factura de otro
         if (rejected.has(pairKey(a.id, b.id))) continue; // ya lo rechazaron a mano: no volver a proponerlo
 
         const amountB = Number(b.amount);
