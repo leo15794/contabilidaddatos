@@ -12,6 +12,7 @@ import { runSplitPayments } from "./split-payments";
 import { runCardNameMatches } from "./card-name";
 import { runInstallments } from "./installments";
 import { runPartialCardPayments } from "./partial-card";
+import { runCuitExactWide, runRoundExtra } from "./bank-invoice";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
 export type EngineOptions = {
@@ -610,7 +611,10 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     // Las facturas anuladas por una nota de crédito se sacan antes de armar los
     // grupos por cliente: se cancelan entre sí y no tienen pago que cruzar.
     const stepCredit = runCreditNotes(step2.remaining, opts, rejected);
-    const stepCuit = runCuitGroups(stepCredit.remaining, opts, rejected);
+    // Transferencia con el CUIT y el importe exacto de una factura, aunque esta
+    // se emita bastante después (pago adelantado): el cruce por CUIT mira 7 días.
+    const stepCuitExact = runCuitExactWide(stepCredit.remaining, rejected);
+    const stepCuit = runCuitGroups(stepCuitExact.remaining, opts, rejected);
     // Transferencias que no dicen a quién se pagaron (MacrOnline): una o varias
     // facturas del mismo proveedor cuya suma cierra exacto.
     const stepPayment = runPaymentGroups(stepCuit.remaining, opts, rejected);
@@ -619,18 +623,21 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const stepSplit = runSplitPayments(stepPayment.remaining, rejected);
     const stepCardName = runCardNameMatches(stepSplit.remaining, rejected);
     const stepPartial = runPartialCardPayments(stepCardName.remaining, rejected);
-    const step3 = runFuzzySuggestions(stepPartial.remaining, opts, rejected);
+    const stepExtra = runRoundExtra(stepPartial.remaining, rejected);
+    const step3 = runFuzzySuggestions(stepExtra.remaining, opts, rejected);
 
     await persistMatches(tx, [
       ...step1.specs,
       ...stepInstallments.specs,
       ...step2.specs,
       ...stepCredit.specs,
+      ...stepCuitExact.specs,
       ...stepCuit.specs,
       ...stepPayment.specs,
       ...stepSplit.specs,
       ...stepCardName.specs,
       ...stepPartial.specs,
+      ...stepExtra.specs,
       ...step3.specs,
     ]);
 
@@ -638,13 +645,17 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     await releasePendingPaymentCategory((q) => tx.execute(q));
 
     return {
-      exactMatches: step1.specs.length + stepInstallments.specs.length,
+      exactMatches: step1.specs.length + stepInstallments.specs.length + stepCuitExact.specs.length,
       cardStatementMatches: step2.specs.length,
       creditNoteMatches: stepCredit.specs.length,
       cuitGroupMatches: stepCuit.specs.length,
       paymentGroupMatches: stepPayment.specs.length,
       fuzzySuggestions:
-        step3.specs.length + stepSplit.specs.length + stepCardName.specs.length + stepPartial.specs.length,
+        step3.specs.length +
+        stepSplit.specs.length +
+        stepCardName.specs.length +
+        stepPartial.specs.length +
+        stepExtra.specs.length,
       // La deuda abierta no cuenta como "sin resolver": no hay un pago contra el cual cruzarla.
       stillUnmatched: step3.remaining.filter((t) => t.category !== PENDING_PAYMENT_CATEGORY).length,
     };
