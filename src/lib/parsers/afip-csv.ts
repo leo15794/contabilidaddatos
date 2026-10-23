@@ -116,12 +116,19 @@ export function parseAfipCsv(
       continue;
     }
 
-    let amount: number;
-    if (tieneDesglose) {
-      amount = desglose.reduce((sum, colName) => sum + (colName ? parseArNumber(record[colName]) : 0), 0);
-    } else {
-      amount = col.total ? parseArNumber(record[col.total]) : 0;
-    }
+    // "Imp. Total" es el total que AFIP imprime en el comprobante: cuando viene y
+    // no es cero, manda por sobre la suma del desglose. Antes, apenas el archivo
+    // traía columnas de desglose se ignoraba "Imp. Total" y se sumaba el
+    // desglose, que para una factura C (monotributista, sin IVA) viene vacío:
+    // quedaba en $0,00 aunque el total estuviera en el archivo. Y en un "Tique
+    // Factura A" el desglose no sumaba todos los conceptos y el importe quedaba
+    // por debajo del total. La suma del desglose queda para los archivos que no
+    // traen "Imp. Total" (o lo traen en cero).
+    const totalImpreso = col.total ? parseArNumber(record[col.total]) : 0;
+    const sumaDesglose = tieneDesglose
+      ? desglose.reduce((sum, colName) => sum + (colName ? parseArNumber(record[colName]) : 0), 0)
+      : 0;
+    let amount = totalImpreso !== 0 ? totalImpreso : sumaDesglose;
     const tipo = col.tipo ? record[col.tipo] ?? "" : "";
     const isCreditNote = /nota\s*de\s*cr[eé]dito/i.test(tipo);
 
