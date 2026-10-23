@@ -8,6 +8,8 @@ import { PENDING_PAYMENT_CATEGORY, releasePendingPaymentCategory } from "@/lib/c
 import { runCreditNotes } from "./credit-notes";
 import { runCuitGroups } from "./cuit-groups";
 import { runPaymentGroups } from "./payment-groups";
+import { runSplitPayments } from "./split-payments";
+import { runCardNameMatches } from "./card-name";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
 export type EngineOptions = {
@@ -607,7 +609,11 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     // Transferencias que no dicen a quién se pagaron (MacrOnline): una o varias
     // facturas del mismo proveedor cuya suma cierra exacto.
     const stepPayment = runPaymentGroups(stepCuit.remaining, opts, rejected);
-    const step3 = runFuzzySuggestions(stepPayment.remaining, opts, rejected);
+    // Una factura pagada en 2-3 partes y consumos de tarjeta con el mismo nombre
+    // que el proveedor: solo sugerencias, van antes del fuzzy genérico.
+    const stepSplit = runSplitPayments(stepPayment.remaining, rejected);
+    const stepCardName = runCardNameMatches(stepSplit.remaining, rejected);
+    const step3 = runFuzzySuggestions(stepCardName.remaining, opts, rejected);
 
     await persistMatches(tx, [
       ...step1.specs,
@@ -615,6 +621,8 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
       ...stepCredit.specs,
       ...stepCuit.specs,
       ...stepPayment.specs,
+      ...stepSplit.specs,
+      ...stepCardName.specs,
       ...step3.specs,
     ]);
 
@@ -627,7 +635,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
       creditNoteMatches: stepCredit.specs.length,
       cuitGroupMatches: stepCuit.specs.length,
       paymentGroupMatches: stepPayment.specs.length,
-      fuzzySuggestions: step3.specs.length,
+      fuzzySuggestions: step3.specs.length + stepSplit.specs.length + stepCardName.specs.length,
       // La deuda abierta no cuenta como "sin resolver": no hay un pago contra el cual cruzarla.
       stillUnmatched: step3.remaining.filter((t) => t.category !== PENDING_PAYMENT_CATEGORY).length,
     };
