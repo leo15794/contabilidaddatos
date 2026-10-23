@@ -17,7 +17,7 @@ export function ReconcileButton() {
           startTransition(async () => {
             const result = await reconcileAction();
             setMessage(
-              `${result.exactMatches + result.cardStatementMatches} matches nuevos, ${result.cuitGroupMatches} grupos por cliente, ${result.fuzzySuggestions} sugerencias, ${result.stillUnmatched} sin resolver`,
+              `${result.exactMatches + result.cardStatementMatches + result.creditNoteMatches} matches nuevos, ${result.cuitGroupMatches} grupos por cliente, ${result.fuzzySuggestions} sugerencias, ${result.stillUnmatched} sin resolver`,
             );
           })
         }

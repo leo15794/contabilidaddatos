@@ -4,6 +4,7 @@ import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 import { jaccardSimilarity } from "./text-similarity";
 import { isNonReconcilableBankMovement } from "./exclusions";
 import { extractCuits } from "./cuit";
+import { runCreditNotes } from "./credit-notes";
 import { runCuitGroups } from "./cuit-groups";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
 
@@ -577,14 +578,24 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const cardBatchIds = [...new Set(step1.remaining.filter((t) => t.source === "card").map((t) => t.batchId))];
     const cardBatchInfo = await getCardBatchInfo(tx, cardBatchIds);
     const step2 = runCardStatementMatch(step1.remaining, opts, rejected, cardBatchInfo);
-    const stepCuit = runCuitGroups(step2.remaining, opts, rejected);
+    // Las facturas anuladas por una nota de crédito se sacan antes de armar los
+    // grupos por cliente: se cancelan entre sí y no tienen pago que cruzar.
+    const stepCredit = runCreditNotes(step2.remaining, opts, rejected);
+    const stepCuit = runCuitGroups(stepCredit.remaining, opts, rejected);
     const step3 = runFuzzySuggestions(stepCuit.remaining, opts, rejected);
 
-    await persistMatches(tx, [...step1.specs, ...step2.specs, ...stepCuit.specs, ...step3.specs]);
+    await persistMatches(tx, [
+      ...step1.specs,
+      ...step2.specs,
+      ...stepCredit.specs,
+      ...stepCuit.specs,
+      ...step3.specs,
+    ]);
 
     return {
       exactMatches: step1.specs.length,
       cardStatementMatches: step2.specs.length,
+      creditNoteMatches: stepCredit.specs.length,
       cuitGroupMatches: stepCuit.specs.length,
       fuzzySuggestions: step3.specs.length,
       stillUnmatched: step3.remaining.length,
