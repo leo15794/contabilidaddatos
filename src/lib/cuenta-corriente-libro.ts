@@ -145,8 +145,14 @@ export async function getLibroCuentaCorriente(
     const otrosDocs = txns.filter((t) => !docIds.has(t.id) && (t.source === "afip_issued" || t.source === "afip_received"));
     const pagos = txns.filter((t) => !docIds.has(t.id) && t.source !== "afip_issued" && t.source !== "afip_received");
     if (propios.length === 0 || pagos.length === 0) continue;
-    const numeros = propios.map((p) => comprobanteLegible(p.description).numero.split("-").pop()?.replace(/^0+/, ""));
-    const detalle = `paga ${propios.length > 1 ? "FC " + numeros.join(", ") : "FC " + numeros[0]}`;
+    // "paga FC 15 · descuenta NC 3": las notas de crédito del match no son facturas pagadas.
+    const corto = (p: Txn) => comprobanteLegible(p.description).numero.split("-").pop()?.replace(/^0+/, "");
+    const esNC = (p: Txn) => isCreditNote(p.description) || netAmount(p.source, p.amount) < 0;
+    const fcs = propios.filter((p) => !esNC(p)).map(corto);
+    const ncs = propios.filter(esNC).map(corto);
+    const detalle = [fcs.length ? `paga FC ${fcs.join(", ")}` : "", ncs.length ? `descuenta NC ${ncs.join(", ")}` : ""]
+      .filter(Boolean)
+      .join(" · ");
 
     if (otrosDocs.length > 0) {
       // Carrito u otro pago compartido: va un solo renglón con la parte de este proveedor.
