@@ -75,7 +75,7 @@ export default async function CuentaCorrientePage({ searchParams }: { searchPara
             title="Clientes"
             subtitle="Contrapartes de las facturas emitidas — lo que te deben."
           />
-          <CuentaTable rows={clientes} tipo="clientes" />
+          <CuentaTable rows={clientes} tipo="clientes" anio={anio} />
         </Card>
 
         <Card>
@@ -83,7 +83,7 @@ export default async function CuentaCorrientePage({ searchParams }: { searchPara
             title="Proveedores"
             subtitle="Contrapartes de las facturas recibidas — lo que debés."
           />
-          <CuentaTable rows={proveedores} tipo="proveedores" />
+          <CuentaTable rows={proveedores} tipo="proveedores" anio={anio} />
         </Card>
       </main>
     </div>
@@ -113,7 +113,7 @@ function TotalCard({ label, value, tone }: { label: string; value: number; tone:
   );
 }
 
-function CuentaTable({ rows, tipo }: { rows: CuentaCorrienteRow[]; tipo: "clientes" | "proveedores" }) {
+function CuentaTable({ rows, tipo, anio }: { rows: CuentaCorrienteRow[]; tipo: "clientes" | "proveedores"; anio?: number }) {
   if (rows.length === 0) {
     return (
       <EmptyState
@@ -139,7 +139,7 @@ function CuentaTable({ rows, tipo }: { rows: CuentaCorrienteRow[]; tipo: "client
       </thead>
       <tbody>
         {rows.map((r) => {
-          const href = r.cuit ? `/cuenta-corriente/${tipo}/${r.cuit}` : null;
+          const href = r.cuit ? `/cuenta-corriente/${tipo}/${r.cuit}${anio !== undefined ? `?anio=${anio}` : ""}` : null;
           return (
             <tr key={r.cuit ?? r.denominacion} className="border-t border-slate-100 hover:bg-slate-50/80">
               <td className="px-6 py-3 text-slate-700">

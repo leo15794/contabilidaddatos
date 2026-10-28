@@ -8,6 +8,7 @@ import {
   type ComprobanteConEstado,
   type CuentaCorrienteRow,
 } from "@/lib/cuenta-corriente";
+import { getLibroCuentaCorriente } from "@/lib/cuenta-corriente-libro";
 
 /**
  * Excel con el desglose de proveedores y clientes (lo que se arma a mano para
@@ -15,6 +16,9 @@ import {
  * comprobante por comprobante con su estado. Con `?anio=2025` solo ese año.
  *
  * Los importes son netos: las notas de crédito restan (ver `netAmount`).
+ *
+ * Con `?tipo=proveedores&cuit=...` baja la cuenta de UNA contraparte: el libro
+ * de movimientos (Debe, Haber, saldo) y sus facturas abiertas.
  */
 const MONEY = "#,##0.00;[Red]-#,##0.00";
 
@@ -62,14 +66,73 @@ function hojaDetalle(rows: ComprobanteConEstado[]): XLSX.WorkSheet {
   return withFormats(XLSX.utils.json_to_sheet(data), [4], [11, 60, 13, 42, 16, 30]);
 }
 
+function xlsxResponse(wb: XLSX.WorkBook, filename: string): Response {
+  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+const ESTADO_LABEL: Record<string, string> = {
+  pagada: "Pagada",
+  revisar: "Pendiente de revisar",
+  pendiente_pago: "Pendiente de pago",
+  categorizada: "Categorizada",
+  sin_conciliar: "Sin conciliar",
+};
+
+async function exportContraparte(tipo: string, cuit: string, anio: number | undefined): Promise<Response> {
+  const source = tipo === "clientes" ? "afip_issued" : tipo === "proveedores" ? "afip_received" : null;
+  if (!source || !/^d{11}$/.test(cuit)) return new Response("Parámetros inválidos", { status: 400 });
+  const libro = await getLibroCuentaCorriente(source, cuit, { anio });
+  if (!libro) return new Response("No encontrado", { status: 404 });
+
+  const movimientos = XLSX.utils.json_to_sheet([
+    { Fecha: "", Concepto: "Saldo anterior", Detalle: "", Estado: "", Debe: null, Haber: null, Saldo: round2(libro.saldoAnterior) },
+    ...libro.movimientos.map((m) => ({
+      Fecha: isoDay(m.fecha),
+      Concepto: m.tipo === "nota_credito" ? `Nota de crédito · ${m.concepto}` : m.concepto,
+      Detalle: m.detalle ?? "",
+      Estado: m.estado ? (m.estado === "categorizada" && m.categoria ? m.categoria : ESTADO_LABEL[m.estado]) : "",
+      Debe: m.debe ? round2(m.debe) : null,
+      Haber: m.haber ? round2(m.haber) : null,
+      Saldo: round2(m.saldo),
+    })),
+  ]);
+  const abiertas = XLSX.utils.json_to_sheet(
+    libro.abiertas.map((a) => ({
+      Fecha: isoDay(a.txn.date),
+      Comprobante: a.numero,
+      Importe: round2(a.importe),
+      "Días": a.dias,
+      Estado: a.estado === "categorizada" && a.categoria ? a.categoria : ESTADO_LABEL[a.estado],
+    })),
+  );
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, withFormats(movimientos, [4, 5, 6], [11, 40, 50, 22, 16, 16, 16]), "Movimientos");
+  XLSX.utils.book_append_sheet(wb, withFormats(abiertas, [2], [11, 30, 16, 8, 22]), "Facturas abiertas");
+  const nombre = libro.denominacion.replace(/[^ws-]/g, "").trim().replace(/s+/g, "-").toLowerCase();
+  return xlsxResponse(wb, `cuenta-${nombre || cuit}-${anio ?? "todo"}-${isoDay(new Date())}.xlsx`);
+}
+
 export async function GET(request: Request) {
   // El proxy ya exige sesión; se vuelve a verificar acá por si cambia su matcher.
   if (!(await getSession())) return new Response("No autorizado", { status: 401 });
 
-  const anioParam = new URL(request.url).searchParams.get("anio");
+  const params = new URL(request.url).searchParams;
+  const anioParam = params.get("anio");
   const anios = await getAniosConComprobantes();
   const anio = anioParam && anios.includes(Number(anioParam)) ? Number(anioParam) : undefined;
   const periodo = { anio };
+
+  const tipo = params.get("tipo");
+  const cuit = params.get("cuit");
+  if (tipo && cuit) return exportContraparte(tipo, cuit, anio);
 
   const [clientes, proveedores, detalleClientes, detalleProveedores] = await Promise.all([
     getClientesCuentaCorriente(periodo),
@@ -99,14 +162,5 @@ export async function GET(request: Request) {
   XLSX.utils.book_append_sheet(wb, hojaPorCuit(proveedores, "Pagado (conciliado)"), "Proveedores");
   XLSX.utils.book_append_sheet(wb, hojaDetalle(detalleClientes), "Detalle clientes");
   XLSX.utils.book_append_sheet(wb, hojaDetalle(detalleProveedores), "Detalle proveedores");
-  const buffer = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
-
-  const filename = `proveedores-y-clientes-${anio ?? "todo"}-${isoDay(new Date())}.xlsx`;
-  return new Response(new Uint8Array(buffer), {
-    headers: {
-      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return xlsxResponse(wb, `proveedores-y-clientes-${anio ?? "todo"}-${isoDay(new Date())}.xlsx`);
 }
