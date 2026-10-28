@@ -4,7 +4,7 @@ import { importBatches, transactions } from "@/db/schema";
 import { ParseResult } from "./parsers/types";
 import { runMatchingEngine } from "./matching/engine";
 
-export type ImportSource = "bank" | "card" | "afip_issued" | "afip_received" | "ticket";
+export type ImportSource = "bank" | "card" | "afip_issued" | "afip_received" | "ticket" | "retention";
 
 export type DuplicateImportInfo = {
   batchId: number;

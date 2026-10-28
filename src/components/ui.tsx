@@ -128,6 +128,7 @@ export const SOURCE_STYLES: Record<string, { label: string; dot: string }> = {
   afip_issued: { label: "AFIP emitidas", dot: "bg-cyan-500" },
   afip_received: { label: "AFIP recibidas", dot: "bg-teal-500" },
   ticket: { label: "Ticket (WhatsApp)", dot: "bg-green-500" },
+  retention: { label: "Retención", dot: "bg-amber-500" },
 };
 
 export function SourceBadge({ source }: { source: string }) {

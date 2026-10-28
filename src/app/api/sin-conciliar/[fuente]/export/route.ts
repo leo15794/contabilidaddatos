@@ -15,6 +15,7 @@ const SOURCE_LABELS: Record<UnmatchedSource, string> = {
   afip_issued: "AFIP emitidas",
   afip_received: "AFIP recibidas",
   ticket: "Tickets",
+  retention: "Retenciones",
 };
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);

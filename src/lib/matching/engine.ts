@@ -13,6 +13,7 @@ import { runCardNameMatches } from "./card-name";
 import { runInstallments } from "./installments";
 import { runPartialCardPayments } from "./partial-card";
 import { runCardMultiInvoice } from "./card-multi";
+import { runRetentions } from "./retentions";
 import { runBankWideWindow, runCuitExactWide, runRoundExtra } from "./bank-invoice";
 import { bankNamesAnotherParty } from "./name-guard";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
@@ -626,7 +627,9 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const stepCredit = runCreditNotes(step2.remaining, opts, rejected);
     // Transferencia con el CUIT y el importe exacto de una factura, aunque esta
     // se emita bastante después (pago adelantado): el cruce por CUIT mira 7 días.
-    const stepCuitExact = runCuitExactWide(stepCredit.remaining, rejected);
+    // Cobros que llegan netos de la retención de Ganancias: depósito + certificados = facturas.
+    const stepRetentions = runRetentions(stepCredit.remaining, rejected);
+    const stepCuitExact = runCuitExactWide(stepRetentions.remaining, rejected);
     const stepCuit = runCuitGroups(stepCuitExact.remaining, opts, rejected);
     // Transferencias que no dicen a quién se pagaron (MacrOnline): una o varias
     // facturas del mismo proveedor cuya suma cierra exacto.
@@ -648,6 +651,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
       ...stepInstallments.specs,
       ...step2.specs,
       ...stepCredit.specs,
+      ...stepRetentions.specs,
       ...stepCuitExact.specs,
       ...stepCuit.specs,
       ...stepPayment.specs,
@@ -670,7 +674,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
         stepCardMulti.specs.filter((x) => x.status === "auto").length,
       cardStatementMatches: step2.specs.length,
       creditNoteMatches: stepCredit.specs.length,
-      cuitGroupMatches: stepCuit.specs.length,
+      cuitGroupMatches: stepCuit.specs.length + stepRetentions.specs.length,
       paymentGroupMatches: stepPayment.specs.length,
       fuzzySuggestions:
         step3.specs.length +

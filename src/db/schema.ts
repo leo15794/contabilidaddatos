@@ -23,6 +23,9 @@ export const sourceEnum = pgEnum("source", [
   "afip_issued",
   "afip_received",
   "ticket",
+  // Certificados de retención que los clientes practican al pagar (ej. Ganancias
+  // RG 830): el depósito llega neto y la retención completa el cobro de la factura.
+  "retention",
 ]);
 
 export const matchStatusEnum = pgEnum("match_status", [
