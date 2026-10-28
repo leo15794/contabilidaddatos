@@ -1,4 +1,4 @@
-import { asc, eq, inArray, max, notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, max, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, matchItems, matches, transactions } from "@/db/schema";
 import { jaccardSimilarity } from "./text-similarity";
@@ -96,19 +96,30 @@ function daysBetween(a: Date, b: Date): number {
 // distintas de Vercel) no armen matches duplicados sobre los mismos movimientos.
 const ENGINE_LOCK_ID = 727001;
 
-async function getUnmatchedTransactions(tx: Tx): Promise<Txn[]> {
-  // Transacciones que no están en ningún match con estado != 'rejected'.
+async function getUnmatchedTransactions(tx: Tx): Promise<{ pool: Txn[]; statementPaidCardIds: Set<number> }> {
+  // Transacciones que no están en ningún match con estado != 'rejected'...
   const matchedIds = tx
     .select({ id: matchItems.transactionId })
     .from(matchItems)
     .innerJoin(matches, eq(matches.id, matchItems.matchId))
     .where(sql`${matches.status} != 'rejected'`);
 
-  return tx
+  // ...más los consumos de tarjeta que solo están en el cruce del resumen contra
+  // el débito del banco: eso prueba que se pagaron, pero todavía les falta la
+  // factura. Antes quedaban afuera para siempre y su factura, sin conciliar.
+  const otherThanStatement = tx
+    .select({ id: matchItems.transactionId })
+    .from(matchItems)
+    .innerJoin(matches, eq(matches.id, matchItems.matchId))
+    .where(sql`${matches.status} != 'rejected' and ${matches.strategy} != 'card_statement_1toN'`);
+  const statementPaid = await tx
     .select()
     .from(transactions)
-    .where(notInArray(transactions.id, matchedIds))
-    .orderBy(asc(transactions.date));
+    .where(and(eq(transactions.source, "card"), inArray(transactions.id, matchedIds), notInArray(transactions.id, otherThanStatement)));
+
+  const free = await tx.select().from(transactions).where(notInArray(transactions.id, matchedIds));
+  const pool = [...free, ...statementPaid].sort((a, b) => a.date.getTime() - b.date.getTime() || a.id - b.id);
+  return { pool, statementPaidCardIds: new Set(statementPaid.map((t) => t.id)) };
 }
 
 async function getRejectedPairs(tx: Tx): Promise<RejectedPairs> {
@@ -609,7 +620,8 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     //   real — no son pagos a/de terceros.
     // - Excepción: "Pendientes de pago" (facturas que todavía no se pagaron) SÍ
     //   entran al pool, porque el día que aparezca el pago tienen que cruzar.
-    const pool0 = (await getUnmatchedTransactions(tx)).filter(
+    const { pool: unmatched, statementPaidCardIds } = await getUnmatchedTransactions(tx);
+    const pool0 = unmatched.filter(
       (t) => (!t.category || t.category === PENDING_PAYMENT_CATEGORY) && !isNonReconcilableBankMovement(t),
     );
 
@@ -621,10 +633,21 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const stepInstallments = runInstallments(step1.remaining, rejected);
     const cardBatchIds = [...new Set(stepInstallments.remaining.filter((t) => t.source === "card").map((t) => t.batchId))];
     const cardBatchInfo = await getCardBatchInfo(tx, cardBatchIds);
-    const step2 = runCardStatementMatch(stepInstallments.remaining, opts, rejected, cardBatchInfo);
+    const step2 = runCardStatementMatch(
+      stepInstallments.remaining.filter((t) => !statementPaidCardIds.has(t.id)),
+      opts,
+      rejected,
+      cardBatchInfo,
+    );
+    // El cruce del resumen solo prueba que los consumos se pagaron: los consumos
+    // siguen en el pool para encontrar su factura (por nombre, varias facturas,
+    // pago parcial, fuzzy). El débito del banco sí queda usado.
+    const usedByStatement = new Set(step2.specs.flatMap((s) => s.transactionIds));
+    const afterStatement = stepInstallments.remaining.filter((t) => t.source === "card" || !usedByStatement.has(t.id));
+    const paidCard = (t: Txn) => statementPaidCardIds.has(t.id) || (t.source === "card" && usedByStatement.has(t.id));
     // Las facturas anuladas por una nota de crédito se sacan antes de armar los
     // grupos por cliente: se cancelan entre sí y no tienen pago que cruzar.
-    const stepCredit = runCreditNotes(step2.remaining, opts, rejected);
+    const stepCredit = runCreditNotes(afterStatement, opts, rejected);
     // Transferencia con el CUIT y el importe exacto de una factura, aunque esta
     // se emita bastante después (pago adelantado): el cruce por CUIT mira 7 días.
     // Cobros que llegan netos de la retención de Ganancias: depósito + certificados = facturas.
@@ -685,7 +708,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
         stepBankWide.specs.filter((x) => x.status === "pending").length +
         stepCardMulti.specs.filter((x) => x.status === "pending").length,
       // La deuda abierta no cuenta como "sin resolver": no hay un pago contra el cual cruzarla.
-      stillUnmatched: step3.remaining.filter((t) => t.category !== PENDING_PAYMENT_CATEGORY).length,
+      stillUnmatched: step3.remaining.filter((t) => t.category !== PENDING_PAYMENT_CATEGORY && !paidCard(t)).length,
     };
   });
 }
