@@ -37,7 +37,8 @@ const GROUPS = [
       /^imp\.?\s*afip/i,
       /debito\s*fiscal\s*iva/i,
       /^debito\s*iva/i,
-      /comision/i,
+      /comisi[oó]n/i,
+      /inter\.?\s*adel/i,
       /^com\.?\s/i,
     ],
   },
@@ -51,11 +52,12 @@ const GROUPS = [
       /\bmismo\b/i,
       /^transf:[a-z0-9]+-30717898733\s*$/i, // compensación de saldo con otra cuenta propia (CUIT propio)
       /ccerr\s+datos\s+y\s+mer/i, // circuito cerrado de la propia empresa
+      /tef\s+datanet\s+mt\s+datos\s+y/i, // plata que llega de otra cuenta propia
     ],
   },
   {
     category: "Movimientos de fondos / inversiones propias",
-    patterns: [/liq\.?\s*susc/i, /sol\.?\s*resc/i, /rescate\s*fondo/i, /fondo\s*de\s*inversi/i, /plazo\s*fijo/i],
+    patterns: [/liq\.?\s*susc/i, /sol\.?\s*resc/i, /liq\.?\s*resc/i, /rescate\s*fondo/i, /fondo\s*de\s*inversi/i, /plazo\s*fijo/i],
   },
   {
     category: "Honorarios",

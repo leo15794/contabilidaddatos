@@ -44,7 +44,8 @@ const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[]; allowsCui
       /^imp\.?\s*afip/i, // pago de impuestos a AFIP (no corresponde a una factura puntual)
       /debito\s*fiscal\s*iva/i, // desglose de IVA sobre comisiones/gastos bancarios
       /^debito\s*iva/i,
-      /comision/i, // comisiones bancarias (transferencias, mantenimiento, etc.)
+      /comisi[oó]n/i, // comisiones bancarias (transferencias, mantenimiento, chequera "COMISIÓN ADMINISTRACIÓN DE CHEQUERA", etc.)
+      /inter\.?\s*adel/i, // "INTER.ADEL.CC S/ACUERD": intereses del banco por adelanto en cuenta corriente
       /^com\.?\s/i, // "COM RETIRO EFECTIVO...": abreviatura de comisión
     ],
   },
@@ -63,6 +64,7 @@ const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[]; allowsCui
       /\bmismo\b/i, // "MISMO TIT", "CCDO MISMO": movimientos entre cuentas del mismo titular
       new RegExp(`^transf:[a-z0-9]+-(?:${OWN_CUITS.join("|")})\\s*$`, "i"), // "TRANSF:2606190000643422659280-30717898733": compensación de saldo con otra cuenta propia
       /ccerr\s+datos\s+y\s+mer/i, // "CCERR DATOS Y MER 30717898733 CIRC.CERRADO": circuito cerrado de la propia empresa
+      /tef\s+datanet\s+mt\s+datos\s+y/i, // "TEF DATANET MT DATOS Y MERCADEO": plata que la Cta Cte Bancaria recibe de otra cuenta propia
     ],
     // Estas descripciones traen el CUIT (el propio) pegado: la guarda de arriba
     // que evita categorizar pagos a terceros no corresponde acá.
@@ -73,6 +75,7 @@ const NON_RECONCILABLE_GROUPS: { category: string; patterns: RegExp[]; allowsCui
     patterns: [
       /liq\.?\s*susc/i, // "10 Liq.Susc ...": suscripción a un fondo común de inversión (plata que entra al fondo)
       /sol\.?\s*resc/i, // "10 Sol.Resc ...": rescate del fondo (la plata vuelve a la cuenta)
+      /liq\.?\s*resc/i, // "922 Liq.Resc ...": liquidación del rescate de un fondo
       /rescate\s*fondo/i,
       /fondo\s*de\s*inversi/i,
       /plazo\s*fijo/i, // constitución/vencimiento de un plazo fijo propio
