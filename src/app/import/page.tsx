@@ -2,8 +2,9 @@ import { NavBar } from "@/components/nav-bar";
 import { AfipImportForm } from "./afip-form";
 import { BankImportForm } from "./bank-form";
 import { CardImportForm } from "./card-form";
+import { CashImportForm } from "./cash-form";
 import { Card, CardHeader } from "@/components/ui";
-import { IconBank, IconFileText, IconCreditCard } from "@/components/icons";
+import { IconBank, IconFileText, IconCreditCard, IconWallet } from "@/components/icons";
 
 // Leer un resumen de tarjeta con Claude (y más si se suben varios PDF juntos)
 // puede tardar bien más que los 10s que Vercel usa de límite por default en
@@ -20,10 +21,10 @@ export default function ImportPage() {
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-slate-900">Importar</h1>
-          <p className="text-sm text-slate-500">Subí archivos de banco, tarjeta o AFIP para conciliar</p>
+          <p className="text-sm text-slate-500">Subí archivos de banco, tarjeta, AFIP o los gastos en efectivo para conciliar</p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader
               title="Movimientos bancarios"
@@ -52,6 +53,16 @@ export default function ImportPage() {
             />
             <div className="p-5">
               <CardImportForm />
+            </div>
+          </Card>
+          <Card>
+            <CardHeader
+              title="Gastos en efectivo"
+              subtitle="Hoja 'Gastos Socios' de la planilla"
+              action={<IconWallet width={18} height={18} className="text-indigo-500" />}
+            />
+            <div className="p-5">
+              <CashImportForm />
             </div>
           </Card>
         </div>

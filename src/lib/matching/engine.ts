@@ -39,7 +39,8 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 // justificativo (factura AFIP o ticket), nunca contra otro movimiento de
 // pago ni —el bug que reportó Leo— una factura emitida contra una recibida:
 // son dos comprobantes propios, no un pago real cruzando con un comprobante.
-const MOVEMENT_SOURCES = new Set(["bank", "card"]);
+// "cash": gastos que pagó un socio en efectivo (hoja "Gastos Socios"), son el pago de su factura.
+const MOVEMENT_SOURCES = new Set(["bank", "card", "cash"]);
 const JUSTIFICATION_SOURCES = new Set(["afip_issued", "afip_received", "ticket"]);
 
 function canSourcesMatch(a: string, b: string): boolean {
@@ -65,8 +66,15 @@ const CARD_INVOICE_MAX_DAYS = 2;
 // quedaban como sugerencias en vez de conciliarse solos.
 const CARD_INVOICE_AMOUNT_TOLERANCE = 1;
 
+// El efectivo se anota en la planilla con el total del ticket, igual que el
+// voucher de la tarjeta: mismo margen de importe y de días contra la factura.
+const SAME_DAY_PAYMENT_SOURCES = new Set(["card", "cash"]);
+
 function isCardVsInvoice(sourceA: string, sourceB: string): boolean {
-  return (sourceA === "card" && sourceB === "afip_received") || (sourceA === "afip_received" && sourceB === "card");
+  return (
+    (SAME_DAY_PAYMENT_SOURCES.has(sourceA) && sourceB === "afip_received") ||
+    (sourceA === "afip_received" && SAME_DAY_PAYMENT_SOURCES.has(sourceB))
+  );
 }
 
 function maxDaysBetween(sourceA: string, sourceB: string, fallback: number): number {

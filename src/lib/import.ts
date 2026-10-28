@@ -4,7 +4,7 @@ import { importBatches, transactions } from "@/db/schema";
 import { ParseResult } from "./parsers/types";
 import { runMatchingEngine } from "./matching/engine";
 
-export type ImportSource = "bank" | "card" | "afip_issued" | "afip_received" | "ticket" | "retention";
+export type ImportSource = "bank" | "card" | "afip_issued" | "afip_received" | "ticket" | "retention" | "cash";
 
 export type DuplicateImportInfo = {
   batchId: number;
@@ -55,6 +55,8 @@ export async function findDuplicateCardStatement(
  * - Banco: no hay número de comprobante, así que la clave es fecha +
  *   descripción + importe, y se cuentan las repeticiones: si el archivo trae
  *   dos movimientos idénticos y en la base ya hay uno, entra solo el segundo.
+ * - Efectivo: igual que el banco (la planilla de gastos de socios se vuelve a
+ *   subir entera cada mes, con los meses anteriores adentro).
  * Tarjeta y tickets tienen su propio control de duplicados.
  */
 async function dropAlreadyImported(
@@ -62,12 +64,15 @@ async function dropAlreadyImported(
   accountRef: string | null,
   rows: ParseResult["rows"],
 ): Promise<{ rows: ParseResult["rows"]; skipped: number }> {
-  if (rows.length === 0 || !(source === "bank" || source === "afip_issued" || source === "afip_received")) {
+  if (
+    rows.length === 0 ||
+    !(source === "bank" || source === "cash" || source === "afip_issued" || source === "afip_received")
+  ) {
     return { rows, skipped: 0 };
   }
 
   const keyOf = (date: Date, description: string, amount: number) =>
-    source === "bank"
+    source === "bank" || source === "cash"
       ? `${date.toISOString()}|${description}|${amount.toFixed(2)}`
       : `${date.toISOString()}|${description}`;
 

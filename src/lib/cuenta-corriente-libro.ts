@@ -68,6 +68,7 @@ function conceptoPago(t: Txn): { concepto: string; tipo: MovimientoLibro["tipo"]
   if (t.source === "retention") return { concepto: t.description.replace(/\s*\(.*?\)\s*/, " "), tipo: "retencion" };
   if (t.source === "card") return { concepto: `Tarjeta · ${t.description}`, tipo: "pago" };
   if (t.source === "ticket") return { concepto: `Ticket · ${t.description}`, tipo: "pago" };
+  if (t.source === "cash") return { concepto: `${t.description} · pagó ${String((t.raw as { quien?: string } | null)?.quien ?? "un socio")}`, tipo: "pago" };
   return { concepto: `Banco · ${t.description}`, tipo: "pago" };
 }
 

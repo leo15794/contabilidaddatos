@@ -26,6 +26,9 @@ export const sourceEnum = pgEnum("source", [
   // Certificados de retención que los clientes practican al pagar (ej. Ganancias
   // RG 830): el depósito llega neto y la retención completa el cobro de la factura.
   "retention",
+  // Gastos que un socio pagó en efectivo (hoja "Gastos Socios"): el pago que
+  // justifica la factura cuando no hay movimiento de banco ni de tarjeta.
+  "cash",
 ]);
 
 export const matchStatusEnum = pgEnum("match_status", [

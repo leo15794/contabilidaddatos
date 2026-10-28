@@ -325,3 +325,38 @@ export async function importCardAction(
     warnings: [...errors, ...allWarnings],
   };
 }
+
+/** Hoja "Gastos Socios": los gastos pagados en efectivo entran como pagos para cruzar con su factura. */
+export async function importCashAction(
+  _prev: ImportActionState | undefined,
+  formData: FormData,
+): Promise<ImportActionState> {
+  await requireSession();
+  const file = formData.get("file") as File | null;
+  const year = Number(formData.get("year"));
+
+  if (!file || file.size === 0) return { error: "Subí la planilla de contabilidad (.xlsx)." };
+  if (!Number.isInteger(year) || year < 2020 || year > 2100) return { error: "Indicá el año del primer mes de la hoja." };
+
+  const { parseGastosSociosXlsx } = await import("@/lib/parsers/gastos-socios-xlsx");
+  const result = parseGastosSociosXlsx(await file.arrayBuffer(), year);
+
+  if (result.rows.length === 0) {
+    return { error: "No se encontró ningún gasto pagado en efectivo en la hoja.", warnings: result.warnings };
+  }
+
+  const saved = await saveImportAndReconcile("cash", file.name, null, result);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/review");
+  revalidatePath("/import");
+
+  if (saved.rowCount === 0) {
+    return { error: `Esos gastos ya estaban cargados (${saved.skipped} repetidos). No se importó nada.`, warnings: result.warnings };
+  }
+
+  return {
+    success: `Se importaron ${saved.rowCount} gastos en efectivo${saved.skipped > 0 ? ` (se omitieron ${saved.skipped} que ya estaban cargados)` : ""}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
+    warnings: result.warnings,
+  };
+}

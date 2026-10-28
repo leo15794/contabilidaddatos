@@ -354,7 +354,7 @@ export async function getUnmatchedBreakdown() {
   return rows.map((r) => ({ source: r.source, count: Number(r.count), total: Number(r.total) }));
 }
 
-export const UNMATCHED_SOURCES = ["bank", "card", "afip_issued", "afip_received", "ticket", "retention"] as const;
+export const UNMATCHED_SOURCES = ["bank", "card", "afip_issued", "afip_received", "ticket", "retention", "cash"] as const;
 export type UnmatchedSource = (typeof UNMATCHED_SOURCES)[number];
 
 /**

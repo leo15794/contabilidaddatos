@@ -35,6 +35,7 @@ const GROUP_COLUMN: Record<UnmatchedSource, string> = {
   bank: "Destinatario / origen",
   ticket: "Comercio",
   retention: "Agente de retención",
+  cash: "Comercio",
 };
 
 export default async function SinConciliarDetailPage({
