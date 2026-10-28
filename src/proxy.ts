@@ -8,6 +8,7 @@ const COOKIE_NAME = "session";
 // protege con la firma HMAC de OpenWA (OPENWA_WEBHOOK_SECRET), ver
 // src/app/api/tickets/ingest/route.ts.
 const PUBLIC_PATHS = ["/login", "/api/tickets/ingest"];
+const ADMIN_ONLY_PATHS = ["/import", "/importaciones", "/review", "/socios"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -20,10 +21,12 @@ export async function proxy(request: NextRequest) {
   const secret = process.env.AUTH_SECRET;
 
   let authenticated = false;
+  let readOnly = false;
   if (token && secret) {
     try {
-      await jwtVerify(token, new TextEncoder().encode(secret));
+      const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
       authenticated = true;
+      readOnly = payload.role === "contador";
     } catch {
       authenticated = false;
     }
@@ -33,6 +36,11 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // El contador (solo lectura) no entra a las pantallas que son para cargar o decidir.
+  if (readOnly && ADMIN_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();

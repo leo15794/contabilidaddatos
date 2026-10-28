@@ -5,7 +5,7 @@ import { parseAfipCsv } from "@/lib/parsers/afip-csv";
 import { parseBankCsv, BankColumnMapping } from "@/lib/parsers/bank-csv";
 import { saveImportAndReconcile, findDuplicateCardStatement } from "@/lib/import";
 import { ParsedRow } from "@/lib/parsers/types";
-import { requireSession } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 
 // `card-pdf.ts` carga pdf-parse -> pdfjs-dist, que al evaluarse referencia
 // `DOMMatrix` (un global de browser que no existe en el runtime Node de
@@ -24,7 +24,7 @@ export async function importAfipAction(
   _prev: ImportActionState | undefined,
   formData: FormData,
 ): Promise<ImportActionState> {
-  await requireSession();
+  await requireAdmin();
   const file = formData.get("file") as File | null;
   const direction = String(formData.get("direction") ?? "received") as "issued" | "received";
 
@@ -62,7 +62,7 @@ export async function importBankAction(
   _prev: ImportActionState | undefined,
   formData: FormData,
 ): Promise<ImportActionState> {
-  await requireSession();
+  await requireAdmin();
   const file = formData.get("file") as File | null;
   const accountRef = String(formData.get("accountRef") ?? "");
   const mappingRaw = String(formData.get("mapping") ?? "");
@@ -288,7 +288,7 @@ export async function importCardAction(
   _prev: ImportActionState | undefined,
   formData: FormData,
 ): Promise<ImportActionState> {
-  await requireSession();
+  await requireAdmin();
   const files =formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
   const accountRef = String(formData.get("accountRef") ?? "");
   const yearRaw = String(formData.get("statementYear") ?? "");
@@ -331,7 +331,7 @@ export async function importCashAction(
   _prev: ImportActionState | undefined,
   formData: FormData,
 ): Promise<ImportActionState> {
-  await requireSession();
+  await requireAdmin();
   const file = formData.get("file") as File | null;
   const year = Number(formData.get("year"));
 

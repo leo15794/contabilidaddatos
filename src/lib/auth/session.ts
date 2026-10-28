@@ -14,8 +14,15 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function createSession() {
-  const token = await new SignJWT({ user: "leo" })
+/**
+ * "admin": Leo, hace todo. "contador": acceso de solo lectura con su propia
+ * contraseña (APP_ACCOUNTANT_PASSWORD_HASH): ve todo y baja los Excel, pero no
+ * importa, no re-concilia ni toca cruces o categorías.
+ */
+export type Role = "admin" | "contador";
+
+export async function createSession(role: Role = "admin") {
+  const token = await new SignJWT({ user: role === "admin" ? "leo" : "contador", role })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
@@ -36,16 +43,25 @@ export async function destroySession() {
   cookieStore.delete(COOKIE_NAME);
 }
 
-export async function getSession(): Promise<boolean> {
+export async function getRole(): Promise<Role | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (!token) return false;
+  if (!token) return null;
   try {
-    await jwtVerify(token, getSecret());
-    return true;
+    const { payload } = await jwtVerify(token, getSecret());
+    // Las sesiones de antes de los roles no traen "role": eran de Leo.
+    return payload.role === "contador" ? "contador" : "admin";
   } catch {
-    return false;
+    return null;
   }
+}
+
+export async function getSession(): Promise<boolean> {
+  return (await getRole()) !== null;
+}
+
+export async function isReadOnly(): Promise<boolean> {
+  return (await getRole()) === "contador";
 }
 
 /**
@@ -56,6 +72,13 @@ export async function getSession(): Promise<boolean> {
  */
 export async function requireSession(): Promise<void> {
   if (!(await getSession())) throw new Error("No autorizado.");
+}
+
+/** Para todo lo que escribe en la base: el acceso del contador es de solo lectura. */
+export async function requireAdmin(): Promise<void> {
+  const role = await getRole();
+  if (role === null) throw new Error("No autorizado.");
+  if (role !== "admin") throw new Error("Este acceso es de solo lectura.");
 }
 
 export { COOKIE_NAME };

@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { createSession, destroySession } from "./session";
+import { createSession, destroySession, type Role } from "./session";
 
 // Límite de intentos fallidos por IP. Vive en memoria de cada instancia
 // serverless, así que no es un freno perfecto (cada instancia fría arranca de
@@ -64,14 +64,20 @@ export async function loginAction(
     return { error: "Demasiados intentos fallidos. Esperá unos 15 minutos y probá de nuevo." };
   }
 
-  const valid = await bcrypt.compare(password, hash);
-  if (!valid) {
+  // Segunda contraseña, opcional: la del contador (solo lectura).
+  const accountantHash = process.env.APP_ACCOUNTANT_PASSWORD_HASH;
+  const role: Role | null = (await bcrypt.compare(password, hash))
+    ? "admin"
+    : accountantHash && (await bcrypt.compare(password, accountantHash))
+      ? "contador"
+      : null;
+  if (!role) {
     registerFailure(key);
     return { error: "Contraseña incorrecta." };
   }
 
   failedAttempts.delete(key);
-  await createSession();
+  await createSession(role);
   redirect(from);
 }
 

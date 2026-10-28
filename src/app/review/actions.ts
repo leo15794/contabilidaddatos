@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { matches, matchItems, transactions } from "@/db/schema";
-import { requireSession } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 import { releasePendingPaymentCategory } from "@/lib/categories";
 
 export async function resolveMatchAction(matchId: number, decision: "confirmed" | "rejected") {
-  await requireSession();
+  await requireAdmin();
   await db
     .update(matches)
     .set({ status: decision, resolvedAt: new Date() })
@@ -24,7 +24,7 @@ export async function resolveMatchAction(matchId: number, decision: "confirmed" 
 export type ManualMatchResult = { error?: string };
 
 export async function createManualMatchAction(transactionIds: number[]): Promise<ManualMatchResult> {
-  await requireSession();
+  await requireAdmin();
   // Los ids vienen del cliente: se limpian y se validan contra la base antes de
   // crear nada (antes se insertaba cualquier cosa, y un id repetido o ya
   // conciliado rompía la clave primaria o dejaba un movimiento en dos matches).

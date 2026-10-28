@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createPartner, deletePartner, monthKeyToDate, setPartnerBalance, updatePartner } from "@/lib/partners";
-import { requireSession } from "@/lib/auth/session";
+import { requireAdmin } from "@/lib/auth/session";
 
 export type PartnerFormState = { error?: string; success?: string };
 
@@ -11,7 +11,7 @@ export async function createPartnerAction(
   _prev: PartnerFormState | undefined,
   formData: FormData,
 ): Promise<PartnerFormState> {
-  await requireSession();
+  await requireAdmin();
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
 
@@ -24,7 +24,7 @@ export async function createPartnerAction(
 }
 
 export async function deletePartnerAction(partnerId: number) {
-  await requireSession();
+  await requireAdmin();
   await deletePartner(partnerId);
   revalidatePath("/socios");
 }
@@ -34,7 +34,7 @@ export async function updatePartnerAction(
   _prev: PartnerFormState | undefined,
   formData: FormData,
 ): Promise<PartnerFormState> {
-  await requireSession();
+  await requireAdmin();
   const partnerId = Number(formData.get("partnerId"));
   const name = String(formData.get("name") ?? "").trim();
   const aliasName = String(formData.get("aliasName") ?? "").trim();
@@ -54,7 +54,7 @@ export async function setPartnerBalanceAction(
   _prev: PartnerFormState | undefined,
   formData: FormData,
 ): Promise<PartnerFormState> {
-  await requireSession();
+  await requireAdmin();
   const partnerId = Number(formData.get("partnerId"));
   const monthKey = String(formData.get("month") ?? "");
   const amountRaw = String(formData.get("amount") ?? "").replace(",", ".");

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NavBar } from "@/components/nav-bar";
 import { getDashboardSummary, getCategorizedBreakdown } from "@/lib/queries";
 import { ReconcileButton } from "./reconcile-button";
+import { isReadOnly } from "@/lib/auth/session";
 import { Card, CardHeader, SourceBadge, Amount, EmptyState, StatCard } from "@/components/ui";
 import {
   IconArrowUpRight,
@@ -27,6 +28,7 @@ export default async function DashboardPage({
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   const { from: fromStr, to: toStr } = await searchParams;
+  const readOnly = await isReadOnly();
 
   // Fechas en los inputs vienen como "yyyy-mm-dd" (hora local). "to" se lleva
   // hasta el final del día para que incluya todo ese día.
@@ -94,7 +96,7 @@ export default async function DashboardPage({
                   </a>
                 )}
               </form>
-              <ReconcileButton />
+              {!readOnly && <ReconcileButton />}
             </div>
           </div>
 

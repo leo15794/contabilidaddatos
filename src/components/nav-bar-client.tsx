@@ -1,0 +1,114 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { logoutAction } from "@/lib/auth/actions";
+import {
+  IconLayoutDashboard,
+  IconUpload,
+  IconCheckCircle,
+  IconFileText,
+  IconInbox,
+  IconMessageCircle,
+  IconLogOut,
+  IconArrowUpRight,
+  IconUsers,
+  IconScale,
+  IconTrendingUp,
+} from "./icons";
+
+// adminOnly: pantallas para cargar o decidir; el contador (solo lectura) no las ve.
+const LINKS = [
+  { href: "/dashboard", label: "Dashboard", icon: IconLayoutDashboard },
+  { href: "/import", label: "Importar", icon: IconUpload, adminOnly: true },
+  { href: "/importaciones", label: "Importaciones", icon: IconInbox, adminOnly: true },
+  { href: "/review", label: "Revisión", icon: IconCheckCircle, adminOnly: true },
+  { href: "/conciliados", label: "Conciliados", icon: IconFileText },
+  { href: "/cuenta-corriente", label: "Cuenta corriente", icon: IconScale },
+  { href: "/inversiones", label: "Inversiones", icon: IconTrendingUp },
+  { href: "/socios", label: "Socios", icon: IconUsers, adminOnly: true },
+];
+
+// Link al dashboard de OpenWA (el gateway de WhatsApp self-hosted, ver
+// openwa/ y la sección "Agente de WhatsApp" del README) — vive en el VPS,
+// no en esta app, así que es un link externo, no una ruta de Next. Solo
+// aparece si está configurado; si todavía no se levantó el VPS, no se
+// muestra un botón roto.
+const OPENWA_URL = process.env.NEXT_PUBLIC_OPENWA_URL;
+
+export function NavBarClient({ readOnly }: { readOnly: boolean }) {
+  const pathname = usePathname();
+
+  return (
+    <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/85 backdrop-blur">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-5 py-3.5">
+        <div className="flex min-w-0 items-center gap-6">
+          <div className="flex shrink-0 items-center gap-2.5">
+            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] bg-gradient-to-br from-indigo-600 to-violet-500 text-[13px] font-extrabold text-white shadow-sm">
+              2D
+            </span>
+            <div className="hidden leading-tight sm:block">
+              <p className="text-[13.5px] font-bold text-slate-900">2 Datos y Mercadeo</p>
+              <p className="text-[10.5px] text-slate-400">Conciliación contable</p>
+            </div>
+          </div>
+          {/* overflow-x-auto como red de seguridad: si la ventana es angosta,
+              el menú scrollea horizontal en vez de partir una etiqueta en dos
+              líneas (lo que pasaba con "Cuenta corriente" antes). */}
+          <nav className="flex min-w-0 gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {LINKS.filter((l) => !(readOnly && l.adminOnly)).map((l) => {
+              const active = pathname === l.href || pathname.startsWith(l.href + "/");
+              const Icon = l.icon;
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[10px] px-3 py-2 text-[13.5px] font-semibold transition-colors ${
+                    active
+                      ? "bg-indigo-50 text-indigo-600"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                >
+                  <Icon width={15} height={15} className="shrink-0" />
+                  {l.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {readOnly && (
+            <span
+              className="mr-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200"
+              title="Acceso del contador: puede ver y exportar, pero no cargar ni modificar"
+            >
+              Solo lectura
+            </span>
+          )}
+          {!readOnly && OPENWA_URL && (
+            <a
+              href={OPENWA_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+              title="Abrir el dashboard de OpenWA (gestión de la sesión de WhatsApp)"
+            >
+              <IconMessageCircle width={15} height={15} />
+              WhatsApp
+              <IconArrowUpRight width={12} height={12} className="text-slate-400" />
+            </a>
+          )}
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            >
+              <IconLogOut width={15} height={15} />
+              Salir
+            </button>
+          </form>
+        </div>
+      </div>
+    </header>
+  );
+}

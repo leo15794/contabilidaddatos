@@ -10,7 +10,7 @@ const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" });
 
 type Txn = typeof transactions.$inferSelect;
 
-export function UnmatchedList({ transactions }: { transactions: Txn[] }) {
+export function UnmatchedList({ transactions, readOnly = false }: { transactions: Txn[]; readOnly?: boolean }) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +37,7 @@ export function UnmatchedList({ transactions }: { transactions: Txn[] }) {
 
   return (
     <div>
+      {!readOnly && (
       <div className="mb-2 flex items-center justify-between">
         <span className="text-xs text-slate-500">{selected.size} seleccionados</span>
         <Button
@@ -53,6 +54,7 @@ export function UnmatchedList({ transactions }: { transactions: Txn[] }) {
           Unir seleccionados
         </Button>
       </div>
+      )}
       {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
       <div className="max-h-96 overflow-y-auto rounded-xl border border-slate-200 bg-white">
         {transactions.map((t) => (
@@ -60,12 +62,14 @@ export function UnmatchedList({ transactions }: { transactions: Txn[] }) {
             key={t.id}
             className="flex cursor-pointer items-center gap-3 border-b border-slate-100 px-3.5 py-2.5 text-xs last:border-b-0 hover:bg-slate-50"
           >
-            <input
-              type="checkbox"
-              checked={selected.has(t.id)}
-              onChange={() => toggle(t.id)}
-              className="accent-indigo-600"
-            />
+            {!readOnly && (
+              <input
+                type="checkbox"
+                checked={selected.has(t.id)}
+                onChange={() => toggle(t.id)}
+                className="accent-indigo-600"
+              />
+            )}
             <span className="w-28 shrink-0">
               <SourceBadge source={t.source} />
             </span>

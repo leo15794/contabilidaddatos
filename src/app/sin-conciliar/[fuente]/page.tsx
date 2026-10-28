@@ -7,6 +7,7 @@ import { netAmount } from "@/lib/amounts";
 import { Card, CardHeader, SourceBadge, StatCard } from "@/components/ui";
 import { IconArrowLeft, IconInbox, IconFileText } from "@/components/icons";
 import { UnmatchedList } from "@/app/review/unmatched-list";
+import { isReadOnly } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -231,7 +232,7 @@ export default async function SinConciliarDetailPage({
               }. Seleccioná dos o más que correspondan al mismo hecho y unilos a mano.`}
             />
             <div className="px-6 py-5">
-              <UnmatchedList transactions={rows} />
+              <UnmatchedList transactions={rows} readOnly={await isReadOnly()} />
             </div>
 
             {pageCount > 1 && (
