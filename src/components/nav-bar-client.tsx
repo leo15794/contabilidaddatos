@@ -15,6 +15,7 @@ import {
   IconUsers,
   IconScale,
   IconTrendingUp,
+  IconLock,
 } from "./icons";
 
 // adminOnly: pantallas para cargar o decidir; el contador (solo lectura) no las ve.
@@ -27,6 +28,8 @@ const LINKS = [
   { href: "/cuenta-corriente", label: "Cuenta corriente", icon: IconScale },
   { href: "/inversiones", label: "Inversiones", icon: IconTrendingUp },
   { href: "/socios", label: "Socios", icon: IconUsers, adminOnly: true },
+  { href: "/usuarios", label: "Usuarios", icon: IconLock, adminOnly: true },
+  { href: "/cuenta", label: "Mi cuenta", icon: IconUsers },
 ];
 
 // Link al dashboard de OpenWA (el gateway de WhatsApp self-hosted, ver

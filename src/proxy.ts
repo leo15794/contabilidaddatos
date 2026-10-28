@@ -8,7 +8,7 @@ const COOKIE_NAME = "session";
 // protege con la firma HMAC de OpenWA (OPENWA_WEBHOOK_SECRET), ver
 // src/app/api/tickets/ingest/route.ts.
 const PUBLIC_PATHS = ["/login", "/api/tickets/ingest"];
-const ADMIN_ONLY_PATHS = ["/import", "/importaciones", "/review", "/socios"];
+const ADMIN_ONLY_PATHS = ["/import", "/importaciones", "/review", "/socios", "/usuarios"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

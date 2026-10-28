@@ -11,6 +11,7 @@ import {
   index,
   primaryKey,
   uniqueIndex,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 // -----------------------------------------------------------------------
@@ -191,4 +192,27 @@ export const partnerBalances = pgTable(
     index("partner_balances_partner_idx").on(t.partnerId),
     uniqueIndex("partner_balances_partner_month_idx").on(t.partnerId, t.month),
   ],
+);
+
+/**
+ * Usuarios que entran a la app (ver /usuarios). "admin" hace todo; "contador"
+ * es de solo lectura: ve y exporta, pero no importa ni toca cruces. La
+ * contraseña de Vercel (APP_PASSWORD_HASH) sigue funcionando como llave de
+ * emergencia de administrador, por si nadie puede entrar.
+ */
+export const appUsers = pgTable(
+  "app_users",
+  {
+    id: serial("id").primaryKey(),
+    username: text("username").notNull(),
+    name: text("name").notNull(),
+    role: text("role").notNull().default("contador"),
+    passwordHash: text("password_hash").notNull(),
+    active: boolean("active").notNull().default(true),
+    // La contraseña la generó otro (alta o reseteo): se le pide que la cambie al entrar.
+    mustChangePassword: boolean("must_change_password").notNull().default(true),
+    lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("app_users_username_idx").on(t.username)],
 );

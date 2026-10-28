@@ -92,10 +92,8 @@ git push -u origin main
      `openssl rand -base64 32` en cualquier terminal.
    - `APP_PASSWORD_HASH`: corré `npm run hash-password "la-contraseña-que-quieras"`
      en tu máquina y pegá el resultado (no la contraseña en texto plano).
-   - `APP_ACCOUNTANT_PASSWORD_HASH` (opcional): igual que la anterior, con la
-     contraseña del contador. Entra con acceso de solo lectura: ve todo y baja
-     los Excel, pero no importa, no re-concilia ni toca cruces o categorías.
-     Para cortarle el acceso, borrá la variable o cambiá la contraseña.
+   - Después de entrar con esa contraseña, creá los usuarios (vos y el contador)
+     en la pantalla Usuarios. La contraseña de Vercel queda como llave de emergencia.
    - Si vas a usar el agente de WhatsApp (podés sumarlo después, no hace
      falta ahora): `ANTHROPIC_API_KEY`, `OPENWA_URL`, `OPENWA_API_KEY`,
      `OPENWA_SESSION_ID`, `OPENWA_WEBHOOK_SECRET`, `WHATSAPP_ALLOWED_NUMBERS`
