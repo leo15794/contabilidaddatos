@@ -1,7 +1,7 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { matchItems, matches, transactions } from "@/db/schema";
-import { netAmount } from "@/lib/amounts";
+import { isCreditNote, netAmount } from "@/lib/amounts";
 
 /**
  * Cuenta corriente de clientes (facturas emitidas) y proveedores (facturas
@@ -27,7 +27,18 @@ export type CuentaCorrienteRow = {
   saldo: number;
   cantidadFacturas: number;
   cantidadPendientes: number;
+  /** De esos comprobantes, cuántos son notas de crédito (restan). */
+  cantidadNotasCredito: number;
+  primerComprobante: Date | null;
+  ultimoComprobante: Date | null;
 };
+
+/** Año calendario a mirar; sin año, todo lo cargado. */
+export type Periodo = { anio?: number };
+
+function inPeriod(date: Date, periodo: Periodo): boolean {
+  return periodo.anio === undefined || date.getUTCFullYear() === periodo.anio;
+}
 
 export type Txn = typeof transactions.$inferSelect;
 
@@ -46,7 +57,7 @@ export function parseCounterparty(counterparty: string | null): { cuit: string |
   return { cuit: m[1], denominacion: m[2].trim() || "Sin identificar" };
 }
 
-async function getMatchStatusByTxnId(): Promise<Map<number, string>> {
+export async function getMatchStatusByTxnId(): Promise<Map<number, string>> {
   const rows = await db
     .select({ transactionId: matchItems.transactionId, status: matches.status })
     .from(matchItems)
@@ -63,12 +74,14 @@ async function getMatchStatusByTxnId(): Promise<Map<number, string>> {
   return best;
 }
 
-function isConciliada(status: string | undefined): boolean {
+export function isConciliada(status: string | undefined): boolean {
   return status === "auto" || status === "confirmed" || status === "manual";
 }
 
-async function buildCuentaCorriente(source: Source): Promise<CuentaCorrienteRow[]> {
-  const txns = await db.select().from(transactions).where(eq(transactions.source, source));
+async function buildCuentaCorriente(source: Source, periodo: Periodo = {}): Promise<CuentaCorrienteRow[]> {
+  const txns = (await db.select().from(transactions).where(eq(transactions.source, source))).filter((t) =>
+    inPeriod(t.date, periodo),
+  );
   const statusByTxnId = await getMatchStatusByTxnId();
 
   type Acc = CuentaCorrienteRow & { denomCounts: Map<string, number> };
@@ -86,6 +99,9 @@ async function buildCuentaCorriente(source: Source): Promise<CuentaCorrienteRow[
         saldo: 0,
         cantidadFacturas: 0,
         cantidadPendientes: 0,
+        cantidadNotasCredito: 0,
+        primerComprobante: null,
+        ultimoComprobante: null,
         denomCounts: new Map(),
       });
     }
@@ -95,6 +111,9 @@ async function buildCuentaCorriente(source: Source): Promise<CuentaCorrienteRow[
     const amount = netAmount(t.source, t.amount);
     row.facturado += amount;
     row.cantidadFacturas++;
+    if (isCreditNote(t.description)) row.cantidadNotasCredito++;
+    if (!row.primerComprobante || t.date < row.primerComprobante) row.primerComprobante = t.date;
+    if (!row.ultimoComprobante || t.date > row.ultimoComprobante) row.ultimoComprobante = t.date;
     row.denomCounts.set(denominacion, (row.denomCounts.get(denominacion) ?? 0) + 1);
     if (isConciliada(statusByTxnId.get(t.id))) {
       row.conciliado += amount;
@@ -123,19 +142,60 @@ async function buildCuentaCorriente(source: Source): Promise<CuentaCorrienteRow[
         saldo: r.facturado - r.conciliado,
         cantidadFacturas: r.cantidadFacturas,
         cantidadPendientes: r.cantidadPendientes,
+        cantidadNotasCredito: r.cantidadNotasCredito,
+        primerComprobante: r.primerComprobante,
+        ultimoComprobante: r.ultimoComprobante,
       };
     })
     .sort((a, b) => b.saldo - a.saldo);
 }
 
 /** Clientes: contrapartes de facturas EMITIDAS (lo que te deben). */
-export function getClientesCuentaCorriente() {
-  return buildCuentaCorriente("afip_issued");
+export function getClientesCuentaCorriente(periodo: Periodo = {}) {
+  return buildCuentaCorriente("afip_issued", periodo);
 }
 
 /** Proveedores: contrapartes de facturas RECIBIDAS (lo que debés). */
-export function getProveedoresCuentaCorriente() {
-  return buildCuentaCorriente("afip_received");
+export function getProveedoresCuentaCorriente(periodo: Periodo = {}) {
+  return buildCuentaCorriente("afip_received", periodo);
+}
+
+/** Años con comprobantes de AFIP cargados, del más nuevo al más viejo (para el filtro de la pantalla). */
+export async function getAniosConComprobantes(): Promise<number[]> {
+  const rows = await db
+    .select({ anio: sql<number>`distinct extract(year from ${transactions.date})::int` })
+    .from(transactions)
+    .where(inArray(transactions.source, ["afip_issued", "afip_received"]));
+  return rows.map((r) => Number(r.anio)).sort((a, b) => b - a);
+}
+
+export type ComprobanteConEstado = {
+  txn: Txn;
+  cuit: string | null;
+  denominacion: string;
+  importe: number;
+  /** "Conciliado", "Pendiente de revisar", la categoría que tenga ("Pendientes de pago", ...) o "Sin conciliar". */
+  estado: string;
+};
+
+/** Todos los comprobantes de clientes o proveedores del período, con su estado (para el Excel). */
+export async function getComprobantesConEstado(source: Source, periodo: Periodo = {}): Promise<ComprobanteConEstado[]> {
+  const txns = (await db.select().from(transactions).where(eq(transactions.source, source))).filter((t) =>
+    inPeriod(t.date, periodo),
+  );
+  const statusByTxnId = await getMatchStatusByTxnId();
+  return txns
+    .map((t) => {
+      const { cuit, denominacion } = parseCounterparty(t.counterparty);
+      const status = statusByTxnId.get(t.id);
+      const estado = isConciliada(status)
+        ? "Conciliado"
+        : status === "pending"
+          ? "Pendiente de revisar"
+          : t.category || "Sin conciliar";
+      return { txn: t, cuit, denominacion, importe: netAmount(t.source, t.amount), estado };
+    })
+    .sort((a, b) => a.txn.date.getTime() - b.txn.date.getTime() || a.txn.id - b.txn.id);
 }
 
 /** Detalle factura por factura de una contraparte puntual, con su pago cruzado si lo tiene. */

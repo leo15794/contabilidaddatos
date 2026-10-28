@@ -1,18 +1,31 @@
 import Link from "next/link";
 import { NavBar } from "@/components/nav-bar";
-import { getClientesCuentaCorriente, getProveedoresCuentaCorriente, type CuentaCorrienteRow } from "@/lib/cuenta-corriente";
+import {
+  getAniosConComprobantes,
+  getClientesCuentaCorriente,
+  getProveedoresCuentaCorriente,
+  type CuentaCorrienteRow,
+} from "@/lib/cuenta-corriente";
 import { Card, CardHeader, EmptyState } from "@/components/ui";
 import { IconScale } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
 const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeZone: "UTC" });
 
-export default async function CuentaCorrientePage() {
+export default async function CuentaCorrientePage({ searchParams }: { searchParams: Promise<{ anio?: string }> }) {
+  const { anio: anioParam } = await searchParams;
+  const anios = await getAniosConComprobantes();
+  // Solo se acepta un año que tenga comprobantes; cualquier otro valor muestra todo.
+  const anio = anioParam && anios.includes(Number(anioParam)) ? Number(anioParam) : undefined;
+  const periodo = { anio };
+
   const [clientes, proveedores] = await Promise.all([
-    getClientesCuentaCorriente(),
-    getProveedoresCuentaCorriente(),
+    getClientesCuentaCorriente(periodo),
+    getProveedoresCuentaCorriente(periodo),
   ]);
+  const exportHref = `/api/cuenta-corriente/export${anio ? `?anio=${anio}` : ""}`;
 
   const totalPorCobrar = clientes.reduce((acc, c) => acc + c.saldo, 0);
   const totalPorPagar = proveedores.reduce((acc, p) => acc + p.saldo, 0);
@@ -27,6 +40,19 @@ export default async function CuentaCorrientePage() {
           <p className="mt-1 text-sm text-slate-500">
             Saldo por cliente y proveedor, agrupado por CUIT — lo facturado menos lo que ya está conciliado.
           </p>
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-medium text-slate-500">Período:</span>
+            <PeriodoChip href="/cuenta-corriente" label="Todo" active={anio === undefined} />
+            {anios.map((a) => (
+              <PeriodoChip key={a} href={`/cuenta-corriente?anio=${a}`} label={String(a)} active={anio === a} />
+            ))}
+            <a
+              href={exportHref}
+              className="ml-auto rounded-lg bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700"
+            >
+              Exportar a Excel
+            </a>
+          </div>
         </div>
       </div>
 
@@ -64,6 +90,19 @@ export default async function CuentaCorrientePage() {
   );
 }
 
+function PeriodoChip({ href, label, active }: { href: string; label: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+        active ? "bg-indigo-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+      }`}
+    >
+      {label}
+    </Link>
+  );
+}
+
 function TotalCard({ label, value, tone }: { label: string; value: number; tone: "positive" | "negative" }) {
   const color = tone === "positive" ? "text-emerald-600" : "text-rose-600";
   return (
@@ -94,6 +133,7 @@ function CuentaTable({ rows, tipo }: { rows: CuentaCorrienteRow[]; tipo: "client
           <th className="px-6 py-2.5 font-medium">Conciliado</th>
           <th className="px-6 py-2.5 font-medium">Saldo</th>
           <th className="px-6 py-2.5 font-medium">Pendientes</th>
+          <th className="px-6 py-2.5 font-medium">Último</th>
           <th className="px-6 py-2.5 font-medium"></th>
         </tr>
       </thead>
@@ -125,6 +165,9 @@ function CuentaTable({ rows, tipo }: { rows: CuentaCorrienteRow[]; tipo: "client
               </td>
               <td className="whitespace-nowrap px-6 py-3 text-slate-500">
                 {r.cantidadPendientes} / {r.cantidadFacturas}
+              </td>
+              <td className="whitespace-nowrap px-6 py-3 text-slate-500">
+                {r.ultimoComprobante ? fmtDate.format(r.ultimoComprobante) : "—"}
               </td>
               <td className="whitespace-nowrap px-6 py-3 text-right">
                 {href && (
