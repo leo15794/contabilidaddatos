@@ -74,8 +74,54 @@ function sideItem(t: Txn): SideItem {
   return { id: t.id, source: t.source, title: t.description, subtitle, date, amount };
 }
 
+function installments(t: Txn): { count: number; key: string } | null {
+  if (t.source !== "card" || !t.raw || typeof t.raw !== "object") return null;
+  const raw = t.raw as Record<string, unknown>;
+  const m = /^\s*\d+\s*\/\s*(\d+)\s*$/.exec(String(raw.cuotas ?? ""));
+  const count = m ? Number(m[1]) : 0;
+  if (count < 2) return null;
+  return { count, key: `${raw.cardNumber ?? ""}|${raw.comprobante || t.description}|${t.date.toISOString().slice(0, 10)}|${count}` };
+}
+
+/**
+ * Una compra en cuotas trae una fila por cuota en cada resumen mensual, y la
+ * factura es por el total: se muestra como un solo pago por cuota x cantidad.
+ * Sumando solo las cuotas ya cargadas, la silla de 9 cuotas de $50.700,57
+ * (3 cargadas) aparecía con $346.000 de diferencia contra su factura.
+ */
+function paymentItems(txns: Txn[]): SideItem[] {
+  const groups = new Map<string, { rows: Txn[]; count: number }>();
+  for (const t of txns) {
+    const inst = installments(t);
+    if (!inst) continue;
+    const g = groups.get(inst.key) ?? { rows: [], count: inst.count };
+    g.rows.push(t);
+    groups.set(inst.key, g);
+  }
+
+  const items: SideItem[] = [];
+  for (const t of txns) {
+    const inst = installments(t);
+    if (!inst) {
+      items.push(sideItem(t));
+      continue;
+    }
+    const g = groups.get(inst.key)!;
+    if (g.rows[0] !== t) continue; // la compra ya se mostró con su primera cuota
+    const cuota = g.rows.reduce((acc, r) => acc + Math.abs(Number(r.amount)), 0) / g.rows.length;
+    const loaded = new Set(g.rows.map((r) => String((r.raw as Record<string, unknown>).cuotas).split("/")[0].trim())).size;
+    const item = sideItem(t);
+    items.push({
+      ...item,
+      subtitle: `${item.subtitle} · ${g.count} cuotas de ${cuota.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${loaded} de ${g.count} en los resúmenes cargados)`,
+      amount: Math.round(cuota * g.count * 100) / 100,
+    });
+  }
+  return items;
+}
+
 export function toSuggestionView(match: Match, txns: Txn[]): SuggestionView {
-  const payments = txns.filter((t) => PAYMENT_SOURCES.has(t.source)).map(sideItem);
+  const payments = paymentItems(txns.filter((t) => PAYMENT_SOURCES.has(t.source)));
   const documents = txns
     .filter((t) => !PAYMENT_SOURCES.has(t.source))
     .map(sideItem)
