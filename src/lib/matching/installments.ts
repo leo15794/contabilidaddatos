@@ -51,16 +51,44 @@ function parseInstallments(raw: unknown): { count: number } | null {
   return count >= 2 && count <= 24 ? { count } : null;
 }
 
+/** Identifica la compra de una cuota: tarjeta + comprobante + fecha original + cantidad de cuotas. */
+export function installmentKey(t: Txn): { key: string; count: number } | null {
+  if (t.source !== "card" || Number(t.amount) >= 0) return null;
+  const inst = parseInstallments(t.raw);
+  if (!inst) return null;
+  const raw = t.raw as Record<string, unknown>;
+  const voucher = String(raw.comprobante ?? "");
+  if (!voucher) return null;
+  return { key: `${raw.cardNumber ?? ""}|${voucher}|${t.date.toISOString().slice(0, 10)}|${inst.count}`, count: inst.count };
+}
+
+/**
+ * Las cuotas siguen llegando con cada resumen después de que la compra ya se
+ * cruzó con su factura (la silla de 9 cuotas se confirma con 3 cargadas): cada
+ * cuota nueva se suma al cruce que ya tiene su compra, en vez de quedar suelta
+ * sin factura para siempre. Devuelve los pares (match, cuota) a agregar.
+ */
+export function lateInstallments(pool: Txn[], decidedRows: { matchId: number; txn: Txn }[]): { matchId: number; transactionId: number }[] {
+  const matchOfPurchase = new Map<string, number>();
+  for (const { matchId, txn } of decidedRows) {
+    const k = installmentKey(txn);
+    if (k) matchOfPurchase.set(k.key, matchId);
+  }
+  const adds: { matchId: number; transactionId: number }[] = [];
+  for (const t of pool) {
+    const k = installmentKey(t);
+    const matchId = k ? matchOfPurchase.get(k.key) : undefined;
+    if (matchId !== undefined) adds.push({ matchId, transactionId: t.id });
+  }
+  return adds;
+}
+
 function groupPurchases(pool: Txn[]): Purchase[] {
   const byPurchase = new Map<string, Purchase>();
   for (const t of pool) {
-    if (t.source !== "card" || Number(t.amount) >= 0) continue;
-    const inst = parseInstallments(t.raw);
+    const inst = installmentKey(t);
     if (!inst) continue;
-    const raw = t.raw as Record<string, unknown>;
-    const voucher = String(raw.comprobante ?? "");
-    if (!voucher) continue;
-    const key = `${raw.cardNumber ?? ""}|${voucher}|${t.date.toISOString().slice(0, 10)}|${inst.count}`;
+    const key = inst.key;
     const existing = byPurchase.get(key);
     if (existing) existing.rows.push(t);
     else byPurchase.set(key, { rows: [t], total: 0, count: inst.count, date: t.date });

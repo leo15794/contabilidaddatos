@@ -10,7 +10,7 @@ import { runCuitGroups } from "./cuit-groups";
 import { runPaymentGroups } from "./payment-groups";
 import { runSplitPayments } from "./split-payments";
 import { runCardNameMatches } from "./card-name";
-import { runInstallments } from "./installments";
+import { lateInstallments, runInstallments } from "./installments";
 import { runPartialCardPayments } from "./partial-card";
 import { runCardMultiInvoice } from "./card-multi";
 import { runRetentions } from "./retentions";
@@ -636,7 +636,28 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
 
     const rejected = await getRejectedPairs(tx);
 
-    const step1 = runExact1to1(pool0, opts, rejected);
+    // Cuotas que llegan con un resumen nuevo de una compra que ya está cruzada con su factura.
+    const decidedCardRows = await tx
+      .select({ matchId: matches.id, txn: transactions })
+      .from(matchItems)
+      .innerJoin(matches, eq(matches.id, matchItems.matchId))
+      .innerJoin(transactions, eq(transactions.id, matchItems.transactionId))
+      .where(
+        and(
+          inArray(matches.status, ["auto", "confirmed", "manual"]),
+          sql`${matches.strategy} != 'card_statement_1toN'`,
+          eq(transactions.source, "card"),
+          sql`${transactions.raw}->>'cuotas' is not null`,
+          sql`exists (select 1 from ${matchItems} mi2 join ${transactions} d on d.id = mi2.transaction_id
+                      where mi2.match_id = ${matches.id} and d.source in ('afip_received', 'afip_issued', 'ticket'))`,
+        ),
+      );
+    const lateAdds = lateInstallments(pool0, decidedCardRows);
+    if (lateAdds.length > 0) await tx.insert(matchItems).values(lateAdds);
+    const attached = new Set(lateAdds.map((a) => a.transactionId));
+    const poolStart = pool0.filter((t) => !attached.has(t.id));
+
+    const step1 = runExact1to1(poolStart, opts, rejected);
     // Compras de MercadoLibre: el reporte une factura y cargo aunque los importes
     // no coincidan (cupón, varios vendedores en un cargo, recargo de cuotas).
     const mlPurchases = groupMlItems(await tx.select().from(mlPurchaseItems));
