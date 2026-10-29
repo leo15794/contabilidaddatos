@@ -1,6 +1,6 @@
 import { and, eq, inArray, max, notInArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { importBatches, matchItems, matches, transactions } from "@/db/schema";
+import { importBatches, matchItems, matches, mlPurchaseItems, transactions } from "@/db/schema";
 import { jaccardSimilarity } from "./text-similarity";
 import { isNonReconcilableBankMovement } from "./exclusions";
 import { extractCuits } from "./cuit";
@@ -14,6 +14,7 @@ import { runInstallments } from "./installments";
 import { runPartialCardPayments } from "./partial-card";
 import { runCardMultiInvoice } from "./card-multi";
 import { runRetentions } from "./retentions";
+import { groupMlItems, runMercadoLibre } from "./mercadolibre";
 import { runBankWideWindow, runCuitExactWide, runRoundExtra } from "./bank-invoice";
 import { bankNamesAnotherParty } from "./name-guard";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
@@ -636,9 +637,13 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     const rejected = await getRejectedPairs(tx);
 
     const step1 = runExact1to1(pool0, opts, rejected);
+    // Compras de MercadoLibre: el reporte une factura y cargo aunque los importes
+    // no coincidan (cupón, varios vendedores en un cargo, recargo de cuotas).
+    const mlPurchases = groupMlItems(await tx.select().from(mlPurchaseItems));
+    const stepMl = runMercadoLibre(step1.remaining, mlPurchases, rejected);
     // Compras en cuotas contra la factura por el total: antes del cruce con el
     // pago del resumen, que se llevaría todas las cuotas libres del lote.
-    const stepInstallments = runInstallments(step1.remaining, rejected);
+    const stepInstallments = runInstallments(stepMl.remaining, rejected);
     const cardBatchIds = [...new Set(stepInstallments.remaining.filter((t) => t.source === "card").map((t) => t.batchId))];
     const cardBatchInfo = await getCardBatchInfo(tx, cardBatchIds);
     const step2 = runCardStatementMatch(
@@ -679,6 +684,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
 
     await persistMatches(tx, [
       ...step1.specs,
+      ...stepMl.specs,
       ...stepInstallments.specs,
       ...step2.specs,
       ...stepCredit.specs,
@@ -700,6 +706,7 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
 
     return {
       exactMatches: step1.specs.length + stepInstallments.specs.length +
+        stepMl.specs.filter((x) => x.status === "auto").length +
         stepCuitExact.specs.length +
         stepBankWide.specs.filter((x) => x.status === "auto").length +
         stepCardMulti.specs.filter((x) => x.status === "auto").length,
@@ -714,7 +721,8 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
         stepPartial.specs.length +
         stepExtra.specs.length +
         stepBankWide.specs.filter((x) => x.status === "pending").length +
-        stepCardMulti.specs.filter((x) => x.status === "pending").length,
+        stepCardMulti.specs.filter((x) => x.status === "pending").length +
+        stepMl.specs.filter((x) => x.status === "pending").length,
       // La deuda abierta no cuenta como "sin resolver": no hay un pago contra el cual cruzarla.
       stillUnmatched: step3.remaining.filter((t) => t.category !== PENDING_PAYMENT_CATEGORY && !paidCard(t)).length,
     };

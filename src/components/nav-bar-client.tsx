@@ -18,6 +18,7 @@ import {
   IconTrendingUp,
   IconLock,
   IconAlertTriangle,
+  IconShoppingBag,
 } from "./icons";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement> & { width?: number; height?: number }>;
@@ -35,7 +36,13 @@ const GROUPS: { title: string | null; items: NavItem[] }[] = [
       { href: "/conciliados", label: "Conciliados", icon: IconFileText },
     ],
   },
-  { title: "Cuentas", items: [{ href: "/cuenta-corriente", label: "Clientes y proveedores", icon: IconScale }] },
+  {
+    title: "Cuentas",
+    items: [
+      { href: "/cuenta-corriente", label: "Clientes y proveedores", icon: IconScale },
+      { href: "/mercadolibre", label: "Compras MercadoLibre", icon: IconShoppingBag },
+    ],
+  },
   {
     title: "Datos",
     items: [

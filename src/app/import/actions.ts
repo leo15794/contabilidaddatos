@@ -6,6 +6,7 @@ import { parseBankCsv, BankColumnMapping } from "@/lib/parsers/bank-csv";
 import { saveImportAndReconcile, findDuplicateCardStatement } from "@/lib/import";
 import { ParsedRow } from "@/lib/parsers/types";
 import { requireAdmin } from "@/lib/auth/session";
+import { runMatchingEngine } from "@/lib/matching/engine";
 
 // `card-pdf.ts` carga pdf-parse -> pdfjs-dist, que al evaluarse referencia
 // `DOMMatrix` (un global de browser que no existe en el runtime Node de
@@ -358,5 +359,45 @@ export async function importCashAction(
   return {
     success: `Se importaron ${saved.rowCount} gastos en efectivo${saved.skipped > 0 ? ` (se omitieron ${saved.skipped} que ya estaban cargados)` : ""}. Conciliación: ${saved.reconcile.exactMatches} matches automáticos, ${saved.reconcile.fuzzySuggestions} sugerencias para revisar.`,
     warnings: result.warnings,
+  };
+}
+
+export async function importMercadoLibreAction(
+  _prev: ImportActionState | undefined,
+  formData: FormData,
+): Promise<ImportActionState> {
+  await requireAdmin();
+  const files = formData.getAll("file").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return { error: "Subí uno o más reportes de compras de MercadoLibre (.csv)." };
+
+  const { parseMercadoLibreCsv } = await import("@/lib/parsers/mercadolibre-csv");
+  const { saveMercadoLibreItems } = await import("@/lib/mercadolibre");
+
+  let inserted = 0;
+  let skipped = 0;
+  const warnings: string[] = [];
+  for (const file of files) {
+    const parsed = parseMercadoLibreCsv(await file.text());
+    warnings.push(...parsed.warnings.map((w) => `${file.name}: ${w}`));
+    const saved = await saveMercadoLibreItems(file.name, parsed.rows);
+    inserted += saved.inserted;
+    skipped += saved.skipped;
+  }
+
+  if (inserted === 0) {
+    return {
+      error: skipped > 0 ? `Esas compras ya estaban cargadas (${skipped} productos repetidos). No se importó nada.` : "No se encontró ninguna compra en los archivos.",
+      warnings,
+    };
+  }
+
+  const reconcile = await runMatchingEngine();
+  revalidatePath("/dashboard");
+  revalidatePath("/review");
+  revalidatePath("/mercadolibre");
+
+  return {
+    success: `Se importaron ${inserted} productos de MercadoLibre${skipped > 0 ? ` (se omitieron ${skipped} que ya estaban cargados)` : ""}. Conciliación: ${reconcile.exactMatches} matches automáticos, ${reconcile.fuzzySuggestions} sugerencias para revisar.`,
+    warnings,
   };
 }

@@ -216,3 +216,38 @@ export const appUsers = pgTable(
   },
   (t) => [uniqueIndex("app_users_username_idx").on(t.username)],
 );
+
+/**
+ * Compras de MercadoLibre, del reporte "Compras" que se baja de la cuenta (un
+ * CSV por período). No son movimientos que se concilien: son la prueba que une
+ * la factura del vendedor con el consumo de tarjeta cuando los importes no
+ * coinciden (cupón o descuento de MercadoLibre, cuotas con recargo, varios
+ * vendedores cobrados en un solo cargo). Ver `src/lib/matching/mercadolibre.ts`.
+ *
+ * Una fila por producto. Los productos de una misma compra y del mismo vendedor
+ * comparten `packTotal` (el "Precio total" del reporte es por vendedor, no por producto).
+ */
+export const mlPurchaseItems = pgTable(
+  "ml_purchase_items",
+  {
+    id: serial("id").primaryKey(),
+    purchaseId: text("purchase_id").notNull(),
+    orderId: text("order_id").notNull(),
+    itemId: text("item_id").notNull().default(""),
+    date: timestamp("date", { withTimezone: false }).notNull(),
+    product: text("product").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    unitPrice: numeric("unit_price", { precision: 14, scale: 2 }).notNull().default("0"),
+    packTotal: numeric("pack_total", { precision: 14, scale: 2 }).notNull(),
+    shipping: numeric("shipping", { precision: 14, scale: 2 }).notNull().default("0"),
+    taxes: numeric("taxes", { precision: 14, scale: 2 }).notNull().default("0"),
+    paymentMethod: text("payment_method"),
+    buyer: text("buyer"),
+    filename: text("filename"),
+    importedAt: timestamp("imported_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("ml_purchase_items_order_item_idx").on(t.orderId, t.itemId),
+    index("ml_purchase_items_date_idx").on(t.date),
+  ],
+);
