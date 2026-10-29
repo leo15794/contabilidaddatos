@@ -22,6 +22,9 @@ export function ReconcileButton() {
           })
         }
         disabled={pending}
+        variant="secondary"
+        size="sm"
+        className="bg-white py-2 ring-1 ring-slate-200 hover:bg-slate-50"
       >
         <IconSparkles width={15} height={15} />
         {pending ? "Conciliando..." : "Re-conciliar"}

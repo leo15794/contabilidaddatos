@@ -36,3 +36,11 @@ body {
   background-color: #cbd5e1;
   border-radius: 9999px;
 }
+
+/* Barra lateral fija (ver src/components/nav-bar-client.tsx): en escritorio el
+   contenido de cada pantalla se corre a la derecha de la barra. */
+@media (min-width: 1024px) {
+  body:has([data-sidebar]) {
+    padding-left: 248px;
+  }
+}

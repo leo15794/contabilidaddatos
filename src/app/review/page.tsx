@@ -46,7 +46,7 @@ export default async function ReviewPage() {
           )}
         </section>
 
-        <section>
+        <section id="sin-conciliar" className="scroll-mt-6">
           <h2 className="mb-1 text-sm font-semibold text-slate-900">
             Sin ningún match <span className="text-slate-400">({unmatchedTotal})</span>
           </h2>

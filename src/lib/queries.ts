@@ -104,6 +104,8 @@ export async function getDashboardSummary(range: DateRange = {}) {
     pendingReviewCount: Number(pending.count),
     ticketsSinFactura: Number(counts.ticketsSinFactura),
     categorizadosCount,
+    resolvedCount: confirmedCount,
+    pctDenominator,
   };
 }
 
