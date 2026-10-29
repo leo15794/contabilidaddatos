@@ -5,9 +5,8 @@ import { ChangePasswordForm } from "./change-password-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function CuentaPage({ searchParams }: { searchParams: Promise<{ primera?: string }> }) {
+export default async function CuentaPage() {
   const me = await requireSession();
-  const { primera } = await searchParams;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -21,7 +20,7 @@ export default async function CuentaPage({ searchParams }: { searchParams: Promi
           </p>
         </div>
 
-        {(primera || me.mustChangePassword) && me.userId !== 0 && (
+        {me.mustChangePassword && (
           <p className="mb-6 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200">
             Tu contraseña la generó otra persona. Elegí una propia para seguir.
           </p>

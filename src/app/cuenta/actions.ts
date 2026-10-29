@@ -2,6 +2,7 @@
 
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { appUsers } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
@@ -34,5 +35,6 @@ export async function changePasswordAction(
     .update(appUsers)
     .set({ passwordHash: await bcrypt.hash(next, 10), mustChangePassword: false })
     .where(eq(appUsers.id, me.userId));
+  revalidatePath("/cuenta");
   return { success: "Listo, tu contraseña quedó cambiada." };
 }
