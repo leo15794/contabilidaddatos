@@ -52,19 +52,33 @@ const FINANCED_MAX_RATIO = 1.12;
 const ML_CHARGE = /MERPAGO|MERCADO ?PAGO|MERCADOLIB/i;
 
 export function groupMlItems(items: MlItem[]): MlPurchase[] {
-  const byPurchase = new Map<string, { date: Date; packs: Map<string, MlPack> }>();
+  const byPurchase = new Map<string, { date: Date; groups: Map<string, MlItem[]> }>();
   for (const it of items) {
-    const p = byPurchase.get(it.purchaseId) ?? { date: it.date, packs: new Map<string, MlPack>() };
+    const p = byPurchase.get(it.purchaseId) ?? { date: it.date, groups: new Map<string, MlItem[]>() };
     byPurchase.set(it.purchaseId, p);
-    const total = Number(it.packTotal);
-    const key = `${it.purchaseId}|${total.toFixed(2)}`;
-    const pack = p.packs.get(key) ?? { key, total, shipping: 0, products: [] };
-    pack.shipping = Math.max(pack.shipping, Number(it.shipping));
-    pack.products.push(it.quantity > 1 ? `${it.quantity} x ${it.product}` : it.product);
-    p.packs.set(key, pack);
+    const key = `${it.purchaseId}|${Number(it.packTotal).toFixed(2)}`;
+    p.groups.set(key, [...(p.groups.get(key) ?? []), it]);
   }
+
+  const label = (it: MlItem) => (it.quantity > 1 ? `${it.quantity} x ${it.product}` : it.product);
   return [...byPurchase.entries()]
-    .map(([purchaseId, p]) => ({ purchaseId, date: p.date, packs: [...p.packs.values()] }))
+    .map(([purchaseId, p]) => {
+      const packs: MlPack[] = [];
+      for (const [key, rows] of p.groups) {
+        const total = Number(rows[0].packTotal);
+        const shipping = Math.max(...rows.map((r) => Number(r.shipping)));
+        // Dos vendedores con el mismo total en una compra (dos bafles, dos cajas de
+        // barritas de $142.000 con una factura cada una): cada producto ya vale el
+        // total por sí solo, así que son vendedores distintos y no uno.
+        const each = (r: MlItem) => r.quantity * Number(r.unitPrice) + Number(r.taxes);
+        if (rows.length > 1 && rows.every((r) => Math.abs(each(r) - total) <= Math.max(1, total * 0.01))) {
+          rows.forEach((r, i) => packs.push({ key: `${key}|${i}`, total, shipping, products: [label(r)] }));
+        } else {
+          packs.push({ key, total, shipping, products: rows.map(label) });
+        }
+      }
+      return { purchaseId, date: p.date, packs };
+    })
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
@@ -129,7 +143,8 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
     charges: [] as MlChargeLink[],
   }));
 
-  // 1) Facturas: al centavo (o con el envío sumado); si no, una factura algo menor el mismo día.
+  // 1) Facturas: al centavo (o sin el envío, que el "Precio total" ya incluye y
+  // puede facturar MercadoLibre aparte); si no, una factura algo menor el mismo día.
   type InvCand = { idx: number; pack: MlPack; inv: Txn; exact: boolean; days: number; diff: number };
   const invCands: InvCand[] = [];
   result.forEach(({ purchase }, idx) => {
@@ -137,7 +152,7 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
       for (const inv of invoices) {
         const amount = Math.abs(Number(inv.amount));
         const days = daysFrom(purchase.date, inv.date);
-        const diff = Math.min(Math.abs(amount - pack.total), Math.abs(amount - pack.total - pack.shipping));
+        const diff = Math.min(Math.abs(amount - pack.total), Math.abs(amount - (pack.total - pack.shipping)));
         if (diff <= 1 && days >= -INVOICE_DAYS_BEFORE && days <= INVOICE_DAYS_AFTER) {
           invCands.push({ idx, pack, inv, exact: true, days, diff });
         } else if (amount < pack.total && amount / pack.total >= MIN_RATIO && days >= -CHARGE_DAYS_BEFORE && days <= CHARGE_DAYS_AFTER) {
@@ -168,7 +183,7 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
     const targets = packSubsets(purchase.packs).map((packs) => {
       const sum = packs.reduce((acc, p) => acc + p.total, 0);
       const ship = packs.reduce((acc, p) => acc + p.shipping, 0);
-      return { packKeys: packs.map((p) => p.key), totals: [sum, sum + ship] };
+      return { packKeys: packs.map((p) => p.key), totals: [sum, sum - ship] };
     });
     for (const unit of units) {
       const days = daysFrom(purchase.date, unit.date);
