@@ -67,3 +67,18 @@ export async function createManualMatchAction(transactionIds: number[]): Promise
 
   return result;
 }
+
+/** Confirmar o rechazar varias sugerencias de una vez (ej. todas las de confianza alta). */
+export async function resolveManyAction(matchIds: number[], decision: "confirmed" | "rejected") {
+  await requireAdmin();
+  const ids = [...new Set(matchIds.filter((id) => Number.isInteger(id)))];
+  if (ids.length === 0) return;
+  // Solo las que siguen pendientes: si otra pestaña ya resolvió alguna, no se pisa.
+  await db
+    .update(matches)
+    .set({ status: decision, resolvedAt: new Date() })
+    .where(and(inArray(matches.id, ids), eq(matches.status, "pending")));
+  await releasePendingPaymentCategory((q) => db.execute(q));
+  revalidatePath("/review");
+  revalidatePath("/dashboard");
+}

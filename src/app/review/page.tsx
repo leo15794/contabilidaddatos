@@ -1,98 +1,106 @@
 import Link from "next/link";
 import { NavBar } from "@/components/nav-bar";
 import { getPendingMatches, getUnmatchedBreakdown } from "@/lib/queries";
-import { PendingMatchCard } from "./pending-match-card";
-import { Card, SourceBadge, EmptyState } from "@/components/ui";
-import { IconCheckCircle, IconInbox } from "@/components/icons";
+import { SOURCE_STYLES } from "@/components/ui";
+import { ReviewQueue } from "./review-queue";
+import { toSuggestionView, type SuggestionView } from "./suggestion-view";
 
 export const dynamic = "force-dynamic";
 
-const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
+const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 
-export default async function ReviewPage() {
-  const [pending, unmatchedBreakdown] = await Promise.all([
-    getPendingMatches(),
-    getUnmatchedBreakdown(),
-  ]);
+const FILTERS: { key: string; label: string; test: (s: SuggestionView) => boolean }[] = [
+  { key: "todas", label: "Todas", test: () => true },
+  { key: "tarjeta", label: "Tarjeta", test: (s) => s.kind === "tarjeta" },
+  { key: "banco", label: "Banco", test: (s) => s.kind === "banco" },
+  { key: "efectivo", label: "Efectivo", test: (s) => s.kind === "efectivo" },
+  { key: "varias", label: "Varias facturas", test: (s) => s.multi },
+];
+
+export default async function ReviewPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
+  const { tipo } = await searchParams;
+  const [pending, unmatchedBreakdown] = await Promise.all([getPendingMatches(), getUnmatchedBreakdown()]);
+
+  const all = pending.map((p) => toSuggestionView(p.match, p.transactions));
+  const filter = FILTERS.find((f) => f.key === tipo) ?? FILTERS[0];
+  const shown = all.filter(filter.test);
   const unmatchedTotal = unmatchedBreakdown.reduce((acc, r) => acc + r.count, 0);
 
   return (
     <div className="flex min-h-screen flex-col">
       <NavBar />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-xl font-semibold text-slate-900">Revisión</h1>
-          <p className="text-sm text-slate-500">Confirmá sugerencias o uní movimientos a mano</p>
+      <main className="mx-auto w-full max-w-[1180px] flex-1 px-5 py-7 lg:px-9">
+        <div>
+          <p className="text-[12.5px] font-medium text-slate-400">Conciliar</p>
+          <h1 className="mt-1 text-[26px] font-bold tracking-tight text-slate-900">Revisar sugerencias</h1>
+          <p className="mt-1 text-[13px] text-slate-500">
+            El motor encontró una pareja probable para cada una. Confirmá si es correcta o rechazala para que no la vuelva a
+            proponer.
+          </p>
         </div>
 
-        <section className="mb-10">
-          <h2 className="mb-3 text-sm font-semibold text-slate-900">
-            Sugerencias para confirmar <span className="text-slate-400">({pending.length})</span>
-          </h2>
-          {pending.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-white">
-              <EmptyState
-                icon={<IconCheckCircle width={20} height={20} />}
-                title="No hay sugerencias pendientes"
-                description="Cuando el sistema encuentre coincidencias con baja certeza, van a aparecer acá para que las confirmes."
-              />
+        <div className="mt-5 flex flex-wrap gap-2 text-[12.5px] font-medium">
+          {FILTERS.map((f) => {
+            const count = all.filter(f.test).length;
+            if (f.key !== "todas" && count === 0) return null;
+            const activeFilter = f.key === filter.key;
+            return (
+              <Link
+                key={f.key}
+                href={f.key === "todas" ? "/review" : `/review?tipo=${f.key}`}
+                className={`rounded-full px-3 py-1.5 ${
+                  activeFilter ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                {f.label} · {count}
+              </Link>
+            );
+          })}
+        </div>
+
+        <div className="mt-4">
+          {/* key: al cambiar de filtro la cola arranca de nuevo desde la primera */}
+          <ReviewQueue key={filter.key} suggestions={shown} />
+        </div>
+
+        <section id="sin-conciliar" className="mt-10 scroll-mt-6">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-[17px] font-bold tracking-tight text-slate-900">
+                Sin conciliar <span className="font-semibold text-slate-400">· {unmatchedTotal.toLocaleString("es-AR")}</span>
+              </h2>
+              <p className="mt-0.5 text-[12.5px] text-slate-500">
+                Movimientos sin pareja: les falta la factura o el pago del otro lado. Entrá a una fuente para verlos mes a mes y
+                unirlos a mano.
+              </p>
             </div>
+          </div>
+          {unmatchedBreakdown.length === 0 ? (
+            <p className="mt-4 rounded-2xl bg-white px-6 py-8 text-center text-[13px] text-slate-500 ring-1 ring-slate-200">
+              No hay nada sin conciliar.
+            </p>
           ) : (
-            <div className="space-y-3">
-              {pending.map((p) => (
-                <PendingMatchCard key={p.match.id} match={p.match} transactions={p.transactions} />
-              ))}
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {unmatchedBreakdown.map((row) => {
+                const style = SOURCE_STYLES[row.source] ?? { label: row.source, dot: "bg-slate-400" };
+                return (
+                  <Link
+                    key={row.source}
+                    href={`/sin-conciliar/${row.source}`}
+                    className="group rounded-2xl bg-white p-4 ring-1 ring-slate-200 transition-shadow hover:shadow-md"
+                  >
+                    <p className="flex items-center gap-2 text-[12.5px] font-medium text-slate-600">
+                      <i className={`h-2 w-2 rounded-full ${style.dot}`} />
+                      {style.label}
+                    </p>
+                    <p className="mt-2 text-[24px] font-extrabold tabular-nums text-slate-900">{row.count}</p>
+                    <p className="text-[12px] tabular-nums text-slate-500">{fmt.format(row.total)}</p>
+                    <p className="mt-2 text-[12px] font-semibold text-indigo-600 group-hover:text-indigo-700">Ver detalle →</p>
+                  </Link>
+                );
+              })}
             </div>
           )}
-        </section>
-
-        <section id="sin-conciliar" className="scroll-mt-6">
-          <h2 className="mb-1 text-sm font-semibold text-slate-900">
-            Sin ningún match <span className="text-slate-400">({unmatchedTotal})</span>
-          </h2>
-          <p className="mb-3 text-xs text-slate-500">
-            Les falta el comprobante o movimiento del otro lado para poder conciliar. Agrupados por fuente — click en
-            una fila para ver el detalle mes a mes y unir a mano lo que corresponda.
-          </p>
-          <Card>
-            {unmatchedBreakdown.length === 0 ? (
-              <EmptyState icon={<IconInbox width={20} height={20} />} title="No hay nada sin match" />
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wide text-slate-400">
-                  <tr>
-                    <th className="px-5 py-2.5 font-medium">Fuente</th>
-                    <th className="px-5 py-2.5 font-medium">Movimientos</th>
-                    <th className="px-5 py-2.5 font-medium">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unmatchedBreakdown.map((row) => (
-                    <tr key={row.source} className="group border-t border-slate-100 hover:bg-slate-50/80">
-                      <td className="p-0">
-                        <Link href={`/sin-conciliar/${row.source}`} className="block px-5 py-3">
-                          <SourceBadge source={row.source} />
-                        </Link>
-                      </td>
-                      <td className="p-0">
-                        <Link href={`/sin-conciliar/${row.source}`} className="block px-5 py-3 text-slate-600 group-hover:text-indigo-600">
-                          {row.count}
-                        </Link>
-                      </td>
-                      <td className="p-0">
-                        <Link
-                          href={`/sin-conciliar/${row.source}`}
-                          className="block whitespace-nowrap px-5 py-3 font-medium tabular-nums text-slate-700"
-                        >
-                          {fmt.format(row.total)}
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Card>
         </section>
       </main>
     </div>
