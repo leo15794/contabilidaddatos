@@ -133,15 +133,20 @@ export default async function MercadoLibrePage({ searchParams }: { searchParams:
                         <p className="mt-1 break-words text-sm text-slate-700">{k.products.join(" + ")}</p>
                         <div className="mt-1.5 grid gap-0.5 text-xs text-slate-500">
                           <span>
-                            Factura:{" "}
-                            {k.invoice ? (
+                            {k.invoices.length > 1 ? "Facturas" : "Factura"}:{" "}
+                            {k.invoices.length > 0 ? (
                               <span className="text-slate-700">
-                                {k.invoice.name} · {money(k.invoice.amount)} · {fmtDate(k.invoice.date)}
+                                {k.invoices.map((i) => `${i.name} · ${money(i.amount)} · ${fmtDate(i.date)}`).join("  |  ")}
                               </span>
                             ) : (
                               <span className="text-rose-600">no encontrada</span>
                             )}
                           </span>
+                          {k.missing.length > 0 && (
+                            <span>
+                              Sin factura: <span className="text-rose-600">{k.missing.join(" + ")}</span>
+                            </span>
+                          )}
                           <span>
                             Tarjeta:{" "}
                             {k.charge ? (

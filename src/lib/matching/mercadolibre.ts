@@ -19,23 +19,33 @@ import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn 
  * total") y la fecha exacta: con eso la factura se identifica al centavo y el
  * cargo de tarjeta por fecha + importe cercano. Nunca usa el nombre del
  * vendedor (el reporte no lo trae).
+ *
+ * Ojo: el "Precio total" agrupa lo que se despachó junto, no a un vendedor. Una
+ * misma caja trae productos de varios vendedores, cada uno con su factura: las
+ * barritas del 09/12 ($170.560, un solo cargo) son 5 x $15.800 de Integra y
+ * 5 x $18.312 de Bottazzini. Por eso la factura también se busca contra los
+ * productos sueltos, y puede llegar meses después de la compra.
  */
 
 type MlItem = typeof mlPurchaseItems.$inferSelect;
 
 /** Lo que se le pagó a un vendedor dentro de una compra. */
-export type MlPack = { key: string; total: number; shipping: number; products: string[] };
+export type MlItemLine = { label: string; amount: number };
+export type MlPack = { key: string; total: number; shipping: number; products: string[]; items: MlItemLine[] };
 export type MlPurchase = { purchaseId: string; date: Date; packs: MlPack[] };
 
 /** Un consumo de tarjeta: una fila, o todas las cuotas cargadas de una misma compra. */
 export type CardUnit = { rows: Txn[]; amount: number; count: number; date: Date };
 
-/** `match`: al centavo, emitida por el comercio del cargo, o menor por el recargo de las cuotas. */
-export type MlInvoiceLink = { inv: Txn; exact: boolean; match: "exact" | "name" | "financed" };
+/**
+ * `match`: al centavo, emitida por el comercio del cargo, o menor por el recargo de las cuotas.
+ * `items`: qué productos del paquete cubre. `late`: llegó bastante después de la compra.
+ */
+export type MlInvoiceLink = { inv: Txn; exact: boolean; match: "exact" | "name" | "financed"; items: number[]; late: boolean };
 export type MlChargeLink = { unit: CardUnit; packKeys: string[]; target: number };
 export type MlPurchaseLinks = {
   purchase: MlPurchase;
-  invoices: Map<string, MlInvoiceLink>;
+  invoices: Map<string, MlInvoiceLink[]>;
   charges: MlChargeLink[];
 };
 
@@ -43,6 +53,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // La factura llega el día de la compra o con la entrega; el cargo, el mismo día o el siguiente.
 const INVOICE_DAYS_BEFORE = 3;
 const INVOICE_DAYS_AFTER = 20;
+// Al centavo se acepta aunque llegue meses después (Martcomp facturó a los 97 días),
+// pero cuantos más productos suma, más fácil es que cierre de casualidad.
+const LATE_INVOICE_DAYS: Record<number, number> = { 1: 120, 2: INVOICE_DAYS_AFTER };
+const MANY_ITEMS_DAYS = 5;
+const MAX_ITEMS_FOR_SUBSETS = 10;
 const CHARGE_DAYS_BEFORE = 1;
 const CHARGE_DAYS_AFTER = 3;
 // Hasta 15 % de descuento entre el precio de MercadoLibre y lo cobrado o lo facturado.
@@ -62,6 +77,7 @@ export function groupMlItems(items: MlItem[]): MlPurchase[] {
   }
 
   const label = (it: MlItem) => (it.quantity > 1 ? `${it.quantity} x ${it.product}` : it.product);
+  const line = (it: MlItem): MlItemLine => ({ label: label(it), amount: it.quantity * Number(it.unitPrice) });
   return [...byPurchase.entries()]
     .map(([purchaseId, p]) => {
       const packs: MlPack[] = [];
@@ -73,9 +89,9 @@ export function groupMlItems(items: MlItem[]): MlPurchase[] {
         // total por sí solo, así que son vendedores distintos y no uno.
         const each = (r: MlItem) => r.quantity * Number(r.unitPrice) + Number(r.taxes);
         if (rows.length > 1 && rows.every((r) => Math.abs(each(r) - total) <= Math.max(1, total * 0.01))) {
-          rows.forEach((r, i) => packs.push({ key: `${key}|${i}`, total, shipping, products: [label(r)] }));
+          rows.forEach((r, i) => packs.push({ key: `${key}|${i}`, total, shipping, products: [label(r)], items: [line(r)] }));
         } else {
-          packs.push({ key, total, shipping, products: rows.map(label) });
+          packs.push({ key, total, shipping, products: rows.map(label), items: rows.map(line) });
         }
       }
       return { purchaseId, date: p.date, packs };
@@ -155,6 +171,18 @@ function sameMerchant(unit: CardUnit, inv: Txn): boolean {
   return m !== "" && i.length >= 5 && (i.startsWith(m) || m.startsWith(i));
 }
 
+/** Combinaciones de productos de un paquete, sin contar el paquete entero. */
+function itemSubsets(pack: MlPack): { items: number[]; sum: number }[] {
+  const n = pack.items.length;
+  if (n < 2 || n > MAX_ITEMS_FOR_SUBSETS) return [];
+  const subsets: { items: number[]; sum: number }[] = [];
+  for (let mask = 1; mask < (1 << n) - 1; mask++) {
+    const items = pack.items.flatMap((_, i) => (mask & (1 << i) ? [i] : []));
+    subsets.push({ items, sum: items.reduce((acc, i) => acc + pack.items[i].amount, 0) });
+  }
+  return subsets;
+}
+
 const daysFrom = (from: Date, to: Date) => Math.round((to.getTime() - from.getTime()) / DAY_MS);
 
 /**
@@ -165,7 +193,7 @@ const daysFrom = (from: Date, to: Date) => Math.round((to.getTime() - from.getTi
 export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards: Txn[]): MlPurchaseLinks[] {
   const result = purchases.map((purchase) => ({
     purchase,
-    invoices: new Map<string, MlInvoiceLink>(),
+    invoices: new Map<string, MlInvoiceLink[]>(),
     charges: [] as MlChargeLink[],
   }));
 
@@ -179,25 +207,34 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
   const namedByCharge = (inv: Txn) =>
     units.some((u) => sameMerchant(u, inv) && Math.abs(daysFrom(u.date, inv.date)) <= INVOICE_DAYS_AFTER);
 
-  // 1) Facturas, de mejor a peor evidencia: al centavo (o sin el envío, que el
-  // "Precio total" ya incluye y puede facturar MercadoLibre aparte); emitida por
+  // 1) Facturas, de mejor a peor evidencia: al centavo contra el paquete entero (o
+  // sin el envío, que el "Precio total" ya incluye y puede facturar MercadoLibre
+  // aparte) o contra algunos de sus productos; emitida por
   // el mismo comercio que cobró en la tarjeta, con importe parecido; o algo menor
   // el mismo día (recargo de cuotas, se confirma más abajo).
-  type InvCand = { idx: number; pack: MlPack; inv: Txn; match: MlInvoiceLink["match"]; days: number; diff: number };
+  type InvCand = { idx: number; pack: MlPack; inv: Txn; match: MlInvoiceLink["match"]; days: number; diff: number; items: number[] };
   const RANK = { exact: 0, name: 1, financed: 2 } as const;
   const invCands: InvCand[] = [];
   result.forEach(({ purchase }, idx) => {
     const merchants = units.filter((u) => nearPurchase(purchase, u));
     for (const pack of purchase.packs) {
+      const allItems = pack.items.map((_, i) => i);
+      const subsets = itemSubsets(pack);
       for (const inv of invoices) {
         const amount = Math.abs(Number(inv.amount));
         const days = daysFrom(purchase.date, inv.date);
         const inWindow = days >= -INVOICE_DAYS_BEFORE && days <= INVOICE_DAYS_AFTER;
         const diff = Math.min(Math.abs(amount - pack.total), Math.abs(amount - (pack.total - pack.shipping)));
         const ratio = amount / pack.total;
-        if (diff <= 1 && inWindow) {
-          invCands.push({ idx, pack, inv, match: "exact", days, diff });
+        if (diff <= 1 && days >= -INVOICE_DAYS_BEFORE && days <= LATE_INVOICE_DAYS[1]) {
+          invCands.push({ idx, pack, inv, match: "exact", days, diff, items: allItems });
           continue;
+        }
+        for (const s of subsets) {
+          const maxDays = LATE_INVOICE_DAYS[s.items.length] ?? MANY_ITEMS_DAYS;
+          if (Math.abs(amount - s.sum) <= 1 && days >= -INVOICE_DAYS_BEFORE && days <= maxDays) {
+            invCands.push({ idx, pack, inv, match: "exact", days, diff: Math.abs(amount - s.sum), items: s.items });
+          }
         }
         // El cargo de ese comercio tiene que poder ser el de este vendedor; entre
         // dos compras del mismo día gana la de precio más cercano al cargo.
@@ -208,9 +245,9 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
                 .map((u) => Math.abs(u.amount - pack.total))
             : [];
         if (unitDiffs.length > 0) {
-          invCands.push({ idx, pack, inv, match: "name", days, diff: Math.min(...unitDiffs) });
+          invCands.push({ idx, pack, inv, match: "name", days, diff: Math.min(...unitDiffs), items: allItems });
         } else if (ratio < 1 && ratio >= MIN_RATIO && days >= -CHARGE_DAYS_BEFORE && days <= CHARGE_DAYS_AFTER && !namedByCharge(inv)) {
-          invCands.push({ idx, pack, inv, match: "financed", days, diff: pack.total - amount });
+          invCands.push({ idx, pack, inv, match: "financed", days, diff: pack.total - amount, items: allItems });
         }
       }
     }
@@ -219,16 +256,20 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
     (a, b) =>
       RANK[a.match] - RANK[b.match] ||
       (a.match === "name" ? a.diff - b.diff : 0) ||
+      Number(b.items.length === b.pack.items.length) - Number(a.items.length === a.pack.items.length) ||
+      a.items.length - b.items.length ||
       Math.abs(a.days) - Math.abs(b.days) ||
       a.diff - b.diff ||
       a.inv.id - b.inv.id,
   );
   const usedInv = new Set<number>();
   for (const c of invCands) {
-    const links = result[c.idx].invoices;
-    if (usedInv.has(c.inv.id) || links.has(c.pack.key)) continue;
+    const links = result[c.idx].invoices.get(c.pack.key) ?? [];
+    const taken = new Set(links.flatMap((l) => l.items));
+    if (usedInv.has(c.inv.id) || c.items.some((i) => taken.has(i))) continue;
     usedInv.add(c.inv.id);
-    links.set(c.pack.key, { inv: c.inv, exact: c.match === "exact", match: c.match });
+    const late = c.days > INVOICE_DAYS_AFTER;
+    result[c.idx].invoices.set(c.pack.key, [...links, { inv: c.inv, exact: c.match === "exact", match: c.match, items: c.items, late }]);
   }
 
   // 2) Cargos: por vendedor o por la compra entera, igual o algo menor (descuento); en cuotas, también algo mayor.
@@ -245,7 +286,7 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
       return { packKeys: packs.map((p) => p.key), totals: [sum, sum - ship] };
     });
     const invoicesOf = (keys: string[]) =>
-      keys.map((k) => result[idx].invoices.get(k)?.inv).filter((x): x is Txn => !!x);
+      keys.flatMap((k) => (result[idx].invoices.get(k) ?? []).map((l) => l.inv));
     for (const unit of units) {
       if (!nearPurchase(purchase, unit)) continue;
       const rounding = unit.count * 0.5 + 1;
@@ -276,17 +317,19 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
   // factura cualquiera del mismo día (combustible, otro proveedor) se colaría.
   // La factura por nombre, en cambio, tiene que quedar con el cargo de ese mismo comercio.
   for (const link of result) {
-    for (const [key, inv] of link.invoices) {
-      if (inv.match === "exact") continue;
+    for (const [key, links] of link.invoices) {
       const charge = link.charges.find((c) => c.packKeys.includes(key));
-      const ok =
-        inv.match === "name"
+      const kept = links.filter((inv) => {
+        if (inv.match === "exact") return true;
+        return inv.match === "name"
           ? !!charge && sameMerchant(charge.unit, inv.inv)
           : !!charge &&
-            charge.packKeys.length === 1 &&
-            charge.unit.count > 1 &&
-            Math.abs(charge.unit.amount - charge.target) <= charge.unit.count * 0.5 + 1;
-      if (!ok) link.invoices.delete(key);
+              charge.packKeys.length === 1 &&
+              charge.unit.count > 1 &&
+              Math.abs(charge.unit.amount - charge.target) <= charge.unit.count * 0.5 + 1;
+      });
+      if (kept.length > 0) link.invoices.set(key, kept);
+      else link.invoices.delete(key);
     }
   }
 
@@ -295,7 +338,9 @@ export function linkMercadoLibre(purchases: MlPurchase[], invoices: Txn[], cards
   for (const link of result) {
     for (const charge of link.charges) {
       if (charge.unit.count > 1) continue;
-      const invoiced = charge.packKeys.reduce((acc, k) => acc + Math.abs(Number(link.invoices.get(k)?.inv.amount ?? 0)), 0);
+      const invoiced = charge.packKeys
+        .flatMap((k) => link.invoices.get(k) ?? [])
+        .reduce((acc, l) => acc + Math.abs(Number(l.inv.amount)), 0);
       if (invoiced === 0) continue;
       const extras = units.filter(
         (u) =>
@@ -326,17 +371,24 @@ export function describeChargeLink(link: MlPurchaseLinks, charge: MlChargeLink):
   complete: boolean;
   /** Alguna factura se tomó solo por ser algo menor el mismo día (recargo de cuotas): evidencia más floja. */
   financed: boolean;
+  /** Alguna factura llegó bastante después de la compra: se pide revisarla aunque cierre al centavo. */
+  late: boolean;
   exact: boolean;
   text: string;
 } {
   const packs = link.purchase.packs.filter((p) => charge.packKeys.includes(p.key));
-  const found = packs.map((p) => link.invoices.get(p.key)).filter((x): x is MlInvoiceLink => !!x);
+  const found = packs.flatMap((p) => link.invoices.get(p.key) ?? []);
   const invoiced = found.reduce((acc, f) => acc + Math.abs(Number(f.inv.amount)), 0);
   const diff = charge.unit.amount - invoiced;
-  const complete = found.length === packs.length;
+  const uncovered = packs.flatMap((p) => {
+    const covered = new Set((link.invoices.get(p.key) ?? []).flatMap((l) => l.items));
+    return p.items.filter((_, i) => !covered.has(i)).map((it) => it.label);
+  });
+  const complete = uncovered.length === 0;
   const rounding = charge.unit.count * 0.5 + 1;
   const financed = found.some((f) => f.match === "financed");
-  const exact = complete && found.every((f) => f.exact) && Math.abs(diff) <= rounding;
+  const late = found.some((f) => f.late);
+  const exact = complete && !late && found.every((f) => f.exact) && Math.abs(diff) <= rounding;
 
   const { unit } = charge;
   const parts = [
@@ -347,18 +399,18 @@ export function describeChargeLink(link: MlPurchaseLinks, charge: MlChargeLink):
         ? `Se pagó en ${unit.rows.length} cargos del mismo comercio: ${unit.rows.map((r) => money(Math.abs(Number(r.amount)))).join(" + ")} = ${money(unit.amount)}.`
         : `Se pagó con un cargo de ${money(unit.amount)}.`,
   ];
-  if (packs.length > 1) parts.push(`Un solo cargo por ${packs.length} vendedores.`);
+  if (found.length > 1) parts.push(`Un solo cargo por ${found.length} facturas.`);
+  if (late) parts.push("Alguna factura se emitió bastante después de la compra.");
   if (found.some((f) => f.match === "name")) parts.push("La factura la emitió el mismo comercio que figura en la tarjeta.");
-  if (complete && !exact) {
+  if (complete && Math.abs(diff) > rounding) {
     parts.push(
       diff < 0
         ? `MercadoLibre cobró ${money(-diff)} menos que lo facturado (cupón o descuento).`
         : `MercadoLibre cobró ${money(diff)} más que lo facturado${unit.count > 1 ? " (recargo de financiación de las cuotas)" : ""}.`,
     );
   }
-  const missing = packs.filter((p) => !link.invoices.has(p.key));
-  if (missing.length > 0) parts.push(`Falta la factura de: ${missing.flatMap((p) => p.products).join(" + ")}.`);
-  return { invoices: found.map((f) => f.inv), diff: Math.abs(diff), complete, financed, exact, text: parts.join(" ") };
+  if (uncovered.length > 0) parts.push(`Falta la factura de: ${uncovered.join(" + ")}.`);
+  return { invoices: found.map((f) => f.inv), diff: Math.abs(diff), complete, financed, late, exact, text: parts.join(" ") };
 }
 
 /** Paso del motor: arma un match por cada cargo de tarjeta de una compra que tenga al menos una factura. */
@@ -381,7 +433,7 @@ export function runMercadoLibre(pool: Txn[], purchases: MlPurchase[], rejected: 
       specs.push({
         strategy: d.exact ? "exact_1to1" : "fuzzy",
         status: d.exact ? "auto" : "pending",
-        confidence: d.exact ? 95 : d.financed ? 70 : d.complete ? 90 : 75,
+        confidence: d.exact ? 95 : d.financed ? 70 : !d.complete ? 75 : d.late ? 85 : 90,
         amountDiff: d.diff,
         transactionIds: ids,
         note: d.exact ? d.text : `Sugerencia automática — ${d.text}`,

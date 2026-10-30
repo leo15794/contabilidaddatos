@@ -14,7 +14,7 @@ import { lateInstallments, runInstallments } from "./installments";
 import { runPartialCardPayments } from "./partial-card";
 import { runCardMultiInvoice } from "./card-multi";
 import { runRetentions } from "./retentions";
-import { groupMlItems, runMercadoLibre } from "./mercadolibre";
+import { groupMlItems, isMlCharge, runMercadoLibre } from "./mercadolibre";
 import { runBankWideWindow, runCuitExactWide, runRoundExtra } from "./bank-invoice";
 import { bankNamesAnotherParty } from "./name-guard";
 import { pairKey, type MatchSpec, type RejectedPairs, type StepResult, type Txn } from "./types";
@@ -70,6 +70,8 @@ const CARD_INVOICE_AMOUNT_TOLERANCE = 1;
 // El efectivo se anota en la planilla con el total del ticket, igual que el
 // voucher de la tarjeta: mismo margen de importe y de días contra la factura.
 const SAME_DAY_PAYMENT_SOURCES = new Set(["card", "cash"]);
+
+const NO_INVOICE_CATEGORY = "Compras sin factura";
 
 function isCardVsInvoice(sourceA: string, sourceB: string): boolean {
   return (
@@ -661,7 +663,11 @@ export async function runMatchingEngine(options: EngineOptions = {}) {
     // Compras de MercadoLibre: el reporte une factura y cargo aunque los importes
     // no coincidan (cupón, varios vendedores en un cargo, recargo de cuotas).
     const mlPurchases = groupMlItems(await tx.select().from(mlPurchaseItems));
-    const stepMl = runMercadoLibre(step1.remaining, mlPurchases, rejected);
+    // Los cargos marcados "Compras sin factura" también entran acá: la factura puede
+    // llegar meses después, y si el reporte la identifica deja de ser sin factura.
+    const noInvoiceCharges = unmatched.filter((t) => t.category === NO_INVOICE_CATEGORY && isMlCharge(t));
+    const stepMlAll = runMercadoLibre([...step1.remaining, ...noInvoiceCharges], mlPurchases, rejected);
+    const stepMl = { ...stepMlAll, remaining: stepMlAll.remaining.filter((t) => t.category !== NO_INVOICE_CATEGORY) };
     // Compras en cuotas contra la factura por el total: antes del cruce con el
     // pago del resumen, que se llevaría todas las cuotas libres del lote.
     const stepInstallments = runInstallments(stepMl.remaining, rejected);

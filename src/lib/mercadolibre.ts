@@ -46,7 +46,9 @@ export type MlPackView = {
   products: string[];
   total: number;
   status: MlPackStatus;
-  invoice: { id: number; name: string; amount: number; date: Date } | null;
+  invoices: { id: number; name: string; amount: number; date: Date }[];
+  /** Productos del paquete que ninguna factura cubre todavía. */
+  missing: string[];
   charge: { description: string; amount: number; count: number; date: Date } | null;
 };
 
@@ -64,7 +66,7 @@ export async function getMercadoLibrePurchases(): Promise<MlPurchaseView[]> {
   if (purchases.length === 0) return [];
 
   const from = new Date(purchases[0].date.getTime() - 5 * DAY_MS);
-  const to = new Date(purchases[purchases.length - 1].date.getTime() + 25 * DAY_MS);
+  const to = new Date(purchases[purchases.length - 1].date.getTime() + 125 * DAY_MS);
   const txns = await db
     .select()
     .from(transactions)
@@ -101,12 +103,8 @@ export async function getMercadoLibrePurchases(): Promise<MlPurchaseView[]> {
 
   return links.map((link) => {
     const packView = (pack: MlPack): MlPackView => {
-      const inv = link.invoices.get(pack.key)?.inv ?? null;
+      const links = link.invoices.get(pack.key) ?? [];
       const charge = link.charges.find((c) => c.packKeys.includes(pack.key)) ?? null;
-      const invMatches = inv ? matchesOf.get(inv.id) ?? [] : [];
-      const shared = charge
-        ? invMatches.find((m) => charge.unit.rows.some((r) => (matchesOf.get(r.id) ?? []).some((x) => x.matchId === m.matchId)))
-        : undefined;
 
       // La factura ya está cruzada con un pago que no es el cargo de esta compra (ni
       // una copia del mismo cargo cargada desde otro resumen): probable cruce equivocado.
@@ -120,26 +118,36 @@ export async function getMercadoLibrePurchases(): Promise<MlPurchaseView[]> {
           )
         );
       };
-      const decided = invMatches.filter((m) => m.status !== "pending");
+      const invoiceStatus = (inv: (typeof links)[number]["inv"]): MlPackStatus => {
+        const invMatches = matchesOf.get(inv.id) ?? [];
+        const shared = charge
+          ? invMatches.find((m) => charge.unit.rows.some((r) => (matchesOf.get(r.id) ?? []).some((x) => x.matchId === m.matchId)))
+          : undefined;
+        const decided = invMatches.filter((m) => m.status !== "pending");
+        if (shared) return shared.status === "pending" ? "sugerida" : "conciliada";
+        if (charge && decided.length > 0 && !decided.some((m) => (rowsOf.get(m.matchId) ?? []).some(sameCharge))) return "otro_pago";
+        if (decided.length > 0) return "conciliada";
+        return charge ? "sugerida" : "sin_cargo";
+      };
+      const statuses = links.map((l) => invoiceStatus(l.inv));
+      const covered = new Set(links.flatMap((l) => l.items));
 
       let status: MlPackStatus;
-      if (inv && shared) status = shared.status === "pending" ? "sugerida" : "conciliada";
-      else if (inv && charge && decided.length > 0 && !decided.some((m) => (rowsOf.get(m.matchId) ?? []).some(sameCharge)))
-        status = "otro_pago";
-      else if (inv && decided.length > 0) status = "conciliada";
-      else if (charge && !inv) status = "sin_factura";
-      else if (inv && !charge) status = "sin_cargo";
-      else if (inv && charge) status = "sugerida";
-      else status = "sin_datos";
+      if (links.length === 0) status = charge ? "sin_factura" : "sin_datos";
+      else status = (["otro_pago", "sugerida", "sin_cargo"] as const).find((s) => statuses.includes(s)) ?? "conciliada";
 
       return {
         key: pack.key,
         products: pack.products,
         total: pack.total,
         status,
-        invoice: inv
-          ? { id: inv.id, name: (inv.counterparty ?? inv.description).split(" - ").slice(1).join(" - ") || inv.description, amount: Math.abs(Number(inv.amount)), date: inv.date }
-          : null,
+        invoices: links.map(({ inv }) => ({
+          id: inv.id,
+          name: (inv.counterparty ?? inv.description).split(" - ").slice(1).join(" - ") || inv.description,
+          amount: Math.abs(Number(inv.amount)),
+          date: inv.date,
+        })),
+        missing: links.length === 0 ? [] : pack.items.filter((_, i) => !covered.has(i)).map((it) => it.label),
         charge: charge
           ? { description: charge.unit.rows[0].description, amount: charge.unit.amount, count: charge.unit.count, date: charge.unit.date }
           : null,
