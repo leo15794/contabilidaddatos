@@ -296,21 +296,18 @@ export async function getPendingMatches() {
   return withTransactions(pending);
 }
 
-/** Matches ya resueltos (confirmados a mano, cargados a mano, o auto-confirmados por el motor). */
-export async function getConfirmedMatches(limit = 200) {
+/**
+ * TODOS los cruces resueltos con sus movimientos, para agruparlos por
+ * proveedor/cliente y buscar en /conciliados (son unos pocos miles de filas:
+ * se agrupan y filtran en memoria, ver `src/lib/match-groups.ts`).
+ */
+export async function getAllResolvedMatches() {
   const resolved = await db
     .select()
     .from(matches)
     .where(sql`${matches.status} in ('confirmed', 'manual', 'auto')`)
-    .orderBy(desc(matches.createdAt))
-    .limit(limit);
-
-  const [{ count: totalCount }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(matches)
-    .where(sql`${matches.status} in ('confirmed', 'manual', 'auto')`);
-
-  return { matches: await withTransactions(resolved), totalCount };
+    .orderBy(desc(matches.createdAt));
+  return withTransactions(resolved);
 }
 
 export async function getUnmatchedTransactions() {

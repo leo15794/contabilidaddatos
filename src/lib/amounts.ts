@@ -22,3 +22,18 @@ export function netAmount(source: string, amount: number | string): number {
 export function isCreditNote(description: string): boolean {
   return /nota\s*de\s*cr[eé]dito/i.test(description);
 }
+
+/**
+ * Importe como lo escribe la gente en un buscador: "1.254.500,50",
+ * "1254500.5", "$ 74.500". Con coma, la coma es el decimal; sin coma, un punto
+ * seguido de 3 cifras es de miles ("74.500") y si no, decimal ("74500.04").
+ * Devuelve el valor absoluto, o undefined si no es un importe.
+ */
+export function parseAmountInput(raw: string): number | undefined {
+  let s = raw.replace(/[$\s]/g, "");
+  if (!s) return undefined;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+  const n = Math.abs(Number(s));
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}

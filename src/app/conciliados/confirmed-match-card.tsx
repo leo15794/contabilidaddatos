@@ -5,7 +5,7 @@ import type { matches, transactions } from "@/db/schema";
 import { resolveMatchAction } from "../review/actions";
 import { Button, SourceBadge, Amount } from "@/components/ui";
 
-const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" });
+const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeZone: "UTC" });
 
 type Match = typeof matches.$inferSelect;
 type Txn = typeof transactions.$inferSelect;

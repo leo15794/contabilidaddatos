@@ -6,7 +6,7 @@ import { createManualMatchAction } from "./actions";
 import { Button, SourceBadge, Amount, EmptyState } from "@/components/ui";
 import { IconInbox } from "@/components/icons";
 
-const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short" });
+const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeZone: "UTC" });
 
 type Txn = typeof transactions.$inferSelect;
 
