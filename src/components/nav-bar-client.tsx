@@ -19,6 +19,7 @@ import {
   IconLock,
   IconAlertTriangle,
   IconShoppingBag,
+  IconWallet,
 } from "./icons";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement> & { width?: number; height?: number }>;
@@ -41,6 +42,7 @@ const GROUPS: { title: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/cuenta-corriente", label: "Clientes y proveedores", icon: IconScale },
       { href: "/mercadolibre", label: "Compras MercadoLibre", icon: IconShoppingBag },
+      { href: "/retiros-efectivo", label: "Retiros de efectivo", icon: IconWallet },
     ],
   },
   {

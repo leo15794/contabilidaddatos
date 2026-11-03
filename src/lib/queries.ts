@@ -683,3 +683,115 @@ export async function updateTransactionAmount(transactionId: number, absoluteAmo
     .set({ amount: amount.toFixed(2) })
     .where(eq(transactions.id, transactionId));
 }
+
+// --------------------------------------------------------------------------
+// Retiros de efectivo de la empresa (cajero, caja de ahorro) y lo que se pagó
+// en mano con esa plata: cada pago en efectivo cargado desde "Pagada en
+// efectivo" guarda en `raw.retiroId` de qué retiro salió.
+// --------------------------------------------------------------------------
+
+/** Un retiro real de plata del banco; el "IDCB ... EXTRAC EFVO" es el impuesto sobre el retiro, no plata. */
+const IS_WITHDRAWAL = sql`${transactions.source} = 'bank' and ${transactions.amount} < 0
+  and ${transactions.category} = 'Retiros de efectivo'
+  and (${transactions.description} ilike 'RETIRO%' or ${transactions.description} ilike 'EXTRACCION%')`;
+
+export type CashWithdrawal = {
+  id: number;
+  date: string;
+  description: string;
+  accountRef: string | null;
+  amount: number;
+  /** Lo ya justificado con facturas pagadas en efectivo (solo cruces vigentes). */
+  used: number;
+  available: number;
+};
+
+export async function getCashWithdrawals(): Promise<CashWithdrawal[]> {
+  const rows = await db
+    .select({
+      id: transactions.id,
+      date: transactions.date,
+      description: transactions.description,
+      accountRef: transactions.accountRef,
+      amount: transactions.amount,
+    })
+    .from(transactions)
+    .where(IS_WITHDRAWAL)
+    .orderBy(desc(transactions.date));
+
+  // Aparte y no como subconsulta: adentro de una subconsulta sobre la misma
+  // tabla, la columna del retiro se resolvía contra el pago y no sumaba nada.
+  const usedRows = await db.execute<{ retiro_id: string; used: string }>(sql`
+    select c.raw->>'retiroId' retiro_id, sum(abs(c.amount)) used from transactions c
+    where c.source = 'cash' and c.raw->>'retiroId' is not null
+      and exists (select 1 from match_items mi join matches m on m.id = mi.match_id
+                  where mi.transaction_id = c.id and m.status in ('auto', 'confirmed', 'manual'))
+    group by 1`);
+  const usedBy = new Map(usedRows.map((u) => [Number(u.retiro_id), Number(u.used)]));
+
+  return rows.map((r) => {
+    const amount = Math.abs(Number(r.amount));
+    const used = usedBy.get(r.id) ?? 0;
+    return {
+      id: r.id,
+      date: r.date.toISOString(),
+      description: r.description,
+      accountRef: r.accountRef,
+      amount,
+      used,
+      available: Math.round((amount - used) * 100) / 100,
+    };
+  });
+}
+
+export type WithdrawalPayment = {
+  retiroId: number;
+  cashId: number;
+  date: Date;
+  amount: number;
+  quien: string | null;
+  matchId: number;
+  documents: { description: string; amount: number }[];
+};
+
+/** Los pagos en efectivo hechos con plata de cada retiro, con las facturas que cubren. */
+export async function getWithdrawalPayments(): Promise<WithdrawalPayment[]> {
+  const rows = await db.execute<{
+    retiro_id: string;
+    cash_id: number;
+    date: Date;
+    amount: string;
+    quien: string | null;
+    match_id: number;
+    doc_description: string | null;
+    doc_amount: string | null;
+  }>(sql`
+    select c.raw->>'retiroId' retiro_id, c.id cash_id, c.date, c.amount, c.raw->>'quien' quien, m.id match_id,
+           d.description doc_description, d.amount doc_amount
+    from transactions c
+    join match_items mi on mi.transaction_id = c.id
+    join matches m on m.id = mi.match_id and m.status in ('auto', 'confirmed', 'manual')
+    left join match_items di on di.match_id = m.id and di.transaction_id <> c.id
+    left join transactions d on d.id = di.transaction_id
+    where c.source = 'cash' and c.raw->>'retiroId' is not null
+    order by c.date desc, c.id`);
+
+  const byCash = new Map<number, WithdrawalPayment>();
+  for (const r of rows) {
+    let p = byCash.get(r.cash_id);
+    if (!p) {
+      p = {
+        retiroId: Number(r.retiro_id),
+        cashId: r.cash_id,
+        date: new Date(r.date),
+        amount: Math.abs(Number(r.amount)),
+        quien: r.quien,
+        matchId: r.match_id,
+        documents: [],
+      };
+      byCash.set(r.cash_id, p);
+    }
+    if (r.doc_description) p.documents.push({ description: r.doc_description, amount: Number(r.doc_amount) });
+  }
+  return [...byCash.values()];
+}

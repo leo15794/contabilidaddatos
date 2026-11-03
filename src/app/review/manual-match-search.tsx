@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
-import type { ManualSearchRow } from "@/lib/queries";
+import type { CashWithdrawal, ManualSearchRow } from "@/lib/queries";
 import { netAmount } from "@/lib/amounts";
 import { Button, SourceBadge, Amount } from "@/components/ui";
-import { createManualMatchAction, getCashPayersAction, markPaidInCashAction, searchManualAction } from "./actions";
+import {
+  createManualMatchAction,
+  getCashPayersAction,
+  getCashWithdrawalsAction,
+  markPaidInCashAction,
+  searchManualAction,
+} from "./actions";
 
 const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeZone: "UTC" });
 const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -405,7 +411,11 @@ function ResultRow({
   );
 }
 
-/** Ventana de "Pagada en efectivo": fecha, quién pagó y una nota; registra el efectivo y lo cruza. */
+/**
+ * Ventana de "Pagada en efectivo". La plata sale de un retiro de efectivo de
+ * la empresa (cajero o caja de ahorro, que va quedando justificado con
+ * facturas) o del bolsillo de un socio, como en la planilla de Gastos Socios.
+ */
 function CashDialog({
   docs,
   total,
@@ -419,30 +429,74 @@ function CashDialog({
 }) {
   const latest = docs.reduce((max, d) => (d.date > max ? d.date : max), docs[0]?.date ?? new Date().toISOString());
   const [date, setDate] = useState(latest.slice(0, 10));
+  const [origin, setOrigin] = useState<"retiro" | "socio">("retiro");
+  const [withdrawalId, setWithdrawalId] = useState<number | null>(null);
   const [payer, setPayer] = useState("");
   const [note, setNote] = useState("");
   const [payers, setPayers] = useState<string[]>([]);
+  const [withdrawals, setWithdrawals] = useState<CashWithdrawal[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, startSave] = useTransition();
 
   useEffect(() => {
     void getCashPayersAction().then(setPayers);
+    void getCashWithdrawalsAction().then(setWithdrawals);
   }, []);
+
+  // Primero los retiros que alcanzan y son anteriores al pago, del más cercano
+  // al más lejano; los que quedaron cortos o son posteriores van al final.
+  const paidAt = new Date(`${date}T00:00:00.000Z`).getTime();
+  const options = (withdrawals ?? [])
+    .filter((w) => w.available > 0.01)
+    .map((w) => {
+      const at = new Date(w.date).getTime();
+      const fits = w.available + 0.01 >= total;
+      const before = at <= paidAt;
+      return { w, fits, before, rank: (fits ? 0 : 2) + (before ? 0 : 1), distance: Math.abs(paidAt - at) };
+    })
+    .sort((a, b) => a.rank - b.rank || a.distance - b.distance);
+  const chosen = withdrawalId ?? options.find((o) => o.fits && o.before)?.w.id ?? options[0]?.w.id ?? null;
+  const chosenWithdrawal = options.find((o) => o.w.id === chosen)?.w;
+  const short = origin === "retiro" && chosenWithdrawal !== undefined && chosenWithdrawal.available + 0.01 < total;
 
   function save(e: FormEvent) {
     e.preventDefault();
     startSave(async () => {
       const result = await markPaidInCashAction(
         docs.map((d) => d.id),
-        { date, payer, note },
+        { date, payer, note, withdrawalId: origin === "retiro" ? chosen : null },
       );
       if (result.error) {
         setError(result.error);
         return;
       }
-      onDone(`Listo: ${docs.length} comprobante(s) quedaron pagados en efectivo por ${payer.trim()} (${fmt.format(total)}).`);
+      onDone(
+        origin === "retiro" && chosenWithdrawal
+          ? `Listo: ${docs.length} comprobante(s) pagados en efectivo con el retiro del ${fmtDate.format(new Date(chosenWithdrawal.date))} (${fmt.format(total)}).`
+          : `Listo: ${docs.length} comprobante(s) quedaron pagados en efectivo por ${payer.trim()} (${fmt.format(total)}).`,
+      );
     });
   }
+
+  const radio = (value: "retiro" | "socio", title: string, detail: string) => (
+    <label
+      className={`flex cursor-pointer gap-2 rounded-lg border px-3 py-2 text-[12.5px] ${
+        origin === value ? "border-indigo-300 bg-indigo-50/60" : "border-slate-200"
+      }`}
+    >
+      <input
+        type="radio"
+        name="origin"
+        checked={origin === value}
+        onChange={() => setOrigin(value)}
+        className="mt-0.5 accent-indigo-600"
+      />
+      <span>
+        <span className="block font-semibold text-slate-800">{title}</span>
+        <span className="block text-[11.5px] text-slate-500">{detail}</span>
+      </span>
+    </label>
+  );
 
   return (
     <div
@@ -452,7 +506,11 @@ function CashDialog({
       aria-labelledby="cash-title"
       onClick={() => !saving && onCancel()}
     >
-      <form onSubmit={save} className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <form
+        onSubmit={save}
+        className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h3 id="cash-title" className="text-[16px] font-bold text-slate-900">
           ¿Marcar {docs.length === 1 ? "esta factura" : `estas ${docs.length} facturas`} como pagada en efectivo?
         </h3>
@@ -464,7 +522,42 @@ function CashDialog({
           <ConfirmList title="Comprobantes" rows={docs} total={total} />
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <p className="mt-4 text-[11.5px] font-medium text-slate-500">¿De dónde salió la plata?</p>
+        <div className="mt-1 grid gap-2 sm:grid-cols-2">
+          {radio("retiro", "De un retiro de la empresa", "Cajero o caja de ahorro: se descuenta de ese retiro.")}
+          {radio("socio", "De un socio", "La puso un socio de su bolsillo, como en Gastos Socios.")}
+        </div>
+
+        {origin === "retiro" && (
+          <label className="mt-3 block text-[11.5px] font-medium text-slate-500">
+            Retiro
+            {withdrawals === null ? (
+              <span className="mt-1 block text-[12.5px] text-slate-400">Cargando retiros…</span>
+            ) : options.length === 0 ? (
+              <span className="mt-1 block text-[12.5px] text-amber-700">No hay retiros con saldo sin justificar.</span>
+            ) : (
+              <select
+                value={chosen ?? ""}
+                onChange={(e) => setWithdrawalId(Number(e.target.value))}
+                className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-2 text-[13px] text-slate-800"
+              >
+                {options.map(({ w, fits }) => (
+                  <option key={w.id} value={w.id}>
+                    {fmtDate.format(new Date(w.date))} · {fmt.format(w.amount)} · disponible {fmt.format(w.available)}
+                    {fits ? "" : " (no alcanza)"}
+                  </option>
+                ))}
+              </select>
+            )}
+            {short && chosenWithdrawal && (
+              <span className="mt-1 block text-[11.5px] text-amber-700">
+                A ese retiro le quedan {fmt.format(chosenWithdrawal.available)}: no alcanza para {fmt.format(total)}.
+              </span>
+            )}
+          </label>
+        )}
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="text-[11.5px] font-medium text-slate-500">
             Fecha del pago
             <input
@@ -476,9 +569,9 @@ function CashDialog({
             />
           </label>
           <label className="text-[11.5px] font-medium text-slate-500">
-            ¿Quién pagó?
+            {origin === "retiro" ? "¿Quién lo llevó? (opcional)" : "¿Quién pagó?"}
             <input
-              required
+              required={origin === "socio"}
               list="cash-payers"
               value={payer}
               onChange={(e) => setPayer(e.target.value)}
@@ -508,7 +601,12 @@ function CashDialog({
           <Button type="button" variant="secondary" size="sm" disabled={saving} onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" variant="success" size="sm" disabled={saving || !payer.trim() || !date}>
+          <Button
+            type="submit"
+            variant="success"
+            size="sm"
+            disabled={saving || !date || (origin === "socio" ? !payer.trim() : chosen === null || short)}
+          >
             {saving ? "Guardando…" : "Sí, pagada en efectivo"}
           </Button>
         </div>

@@ -5,11 +5,17 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, matches, matchItems, transactions } from "@/db/schema";
 import { requireAdmin, requireSession } from "@/lib/auth/session";
-import { searchForManualMatch, type ManualSearchRow } from "@/lib/queries";
+import {
+  getCashWithdrawals,
+  searchForManualMatch,
+  type CashWithdrawal,
+  type ManualSearchRow,
+} from "@/lib/queries";
 import { netAmount, parseAmountInput } from "@/lib/amounts";
 import { releasePendingPaymentCategory } from "@/lib/categories";
 
 const PAYMENT_SOURCES = new Set(["bank", "card", "cash", "ticket", "retention"]);
+const fmtMoney = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 
 export async function resolveMatchAction(matchId: number, decision: "confirmed" | "rejected") {
   await requireAdmin();
@@ -113,20 +119,28 @@ export async function searchManualAction(input: {
 }
 
 /**
- * "Pagada en efectivo": para la factura que se pagó en mano y no quedó en la
- * planilla de Gastos Socios. Crea el movimiento de efectivo por el total de
- * las facturas tildadas (como una fila de esa planilla: "Efectivo · <proveedor>",
- * cuenta "Efectivo · <quién pagó>") y lo cruza con ellas en el mismo paso.
+ * "Pagada en efectivo": para la factura que se pagó en mano. Crea el
+ * movimiento de efectivo por el total de las facturas tildadas (como una fila
+ * de la planilla de Gastos Socios: "Efectivo · <proveedor>") y lo cruza con
+ * ellas en el mismo paso. La plata sale de un retiro de efectivo de la
+ * empresa (queda anotado en `raw.retiroId` y se descuenta de lo que ese
+ * retiro tiene sin justificar) o del bolsillo de un socio.
  */
 export async function markPaidInCashAction(
   transactionIds: number[],
-  input: { date: string; payer: string; note: string },
+  input: { date: string; payer: string; note: string; withdrawalId: number | null },
 ): Promise<ManualMatchResult> {
   await requireAdmin();
   const ids = [...new Set(transactionIds.filter((id) => Number.isInteger(id)))];
   if (ids.length === 0) return { error: "Tildá al menos una factura." };
   const payer = input.payer.trim().slice(0, 60);
-  if (!payer) return { error: "Poné quién pagó." };
+  const withdrawalId = Number.isInteger(input.withdrawalId) ? input.withdrawalId : null;
+  if (!payer && withdrawalId === null) return { error: "Poné quién pagó." };
+  // Se busca afuera de la transacción: la base tiene una sola conexión y la
+  // transacción la ocupa, así que una consulta con `db` adentro se quedaba esperando.
+  const withdrawal: CashWithdrawal | undefined =
+    withdrawalId === null ? undefined : (await getCashWithdrawals()).find((w) => w.id === withdrawalId);
+  if (withdrawalId !== null && !withdrawal) return { error: "Ese retiro no existe." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return { error: "La fecha no es válida." };
   const date = new Date(`${input.date}T00:00:00.000Z`);
   if (Number.isNaN(date.getTime())) return { error: "La fecha no es válida." };
@@ -158,9 +172,17 @@ export async function markPaidInCashAction(
     const amount = docs[0].source === "afip_received" ? -total : total;
     const name = (docs[0].counterparty ?? "").replace(/^[\d.]+\s*-\s*/, "").trim() || "Sin identificar";
 
+    // Plata de un retiro de la empresa: no puede justificar más de lo que se retiró.
+    if (withdrawal && total > withdrawal.available + 0.01) {
+      return {
+        error: `Al retiro le quedan ${fmtMoney(withdrawal.available)} sin justificar y las facturas suman ${fmtMoney(total)}.`,
+      };
+    }
+    const holder = withdrawal ? "Empresa" : payer;
+
     const [batch] = await tx
       .insert(importBatches)
-      .values({ source: "cash", filename: "Pagada en efectivo (cargado a mano)", accountRef: `Efectivo · ${payer}`, rowCount: 1 })
+      .values({ source: "cash", filename: "Pagada en efectivo (cargado a mano)", accountRef: `Efectivo · ${holder}`, rowCount: 1 })
       .returning({ id: importBatches.id });
     const [cash] = await tx
       .insert(transactions)
@@ -170,9 +192,15 @@ export async function markPaidInCashAction(
         date,
         description: `Efectivo · ${name}`,
         amount: amount.toFixed(2),
-        accountRef: `Efectivo · ${payer}`,
+        accountRef: `Efectivo · ${holder}`,
         counterparty: name,
-        raw: { quien: payer, origen: "Pagada en efectivo (cargado a mano)", nota: note || null, facturas: ids },
+        raw: {
+          quien: payer || "la empresa",
+          origen: withdrawal ? "Retiro de efectivo de la empresa" : "Pagada en efectivo (cargado a mano)",
+          ...(withdrawal ? { retiroId: withdrawal.id } : {}),
+          nota: note || null,
+          facturas: ids,
+        },
       })
       .returning({ id: transactions.id });
 
@@ -183,7 +211,9 @@ export async function markPaidInCashAction(
         status: "manual",
         confidence: 100,
         amountDiff: "0",
-        note: `Pagada en efectivo por ${payer}${note ? ` — ${note}` : ""}.`,
+        note: withdrawal
+          ? `Pagada en efectivo con el retiro del ${withdrawal.date.slice(8, 10)}/${withdrawal.date.slice(5, 7)}/${withdrawal.date.slice(0, 4)} (${fmtMoney(withdrawal.amount)})${payer ? `, la llevó ${payer}` : ""}${note ? ` — ${note}` : ""}.`
+          : `Pagada en efectivo por ${payer}${note ? ` — ${note}` : ""}.`,
         resolvedAt: new Date(),
       })
       .returning({ id: matches.id });
@@ -207,4 +237,10 @@ export async function getCashPayersAction(): Promise<string[]> {
     .from(transactions)
     .where(eq(transactions.source, "cash"));
   return [...new Set(rows.map((r) => (r.ref ?? "").replace(/^Efectivo\s*·\s*/, "").trim()).filter(Boolean))].sort();
+}
+
+/** Retiros de efectivo de la empresa con lo que les queda sin justificar, para "Pagada en efectivo". */
+export async function getCashWithdrawalsAction(): Promise<CashWithdrawal[]> {
+  await requireSession();
+  return getCashWithdrawals();
 }
