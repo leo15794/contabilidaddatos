@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useEffect, useState, useTransition, type FormEvent } from "react";
 import type { ManualSearchRow } from "@/lib/queries";
 import { netAmount } from "@/lib/amounts";
 import { Button, SourceBadge, Amount } from "@/components/ui";
-import { createManualMatchAction, searchManualAction } from "./actions";
+import { createManualMatchAction, getCashPayersAction, markPaidInCashAction, searchManualAction } from "./actions";
 
 const fmtDate = new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeZone: "UTC" });
 const fmt = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" });
@@ -34,6 +34,7 @@ export function ManualMatchSearch({ readOnly = false }: { readOnly?: boolean }) 
   const [docs, setDocs] = useState<Selection>(new Map());
   const [pays, setPays] = useState<Selection>(new Map());
   const [confirming, setConfirming] = useState(false);
+  const [payingCash, setPayingCash] = useState(false);
   const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
   const [removed, setRemoved] = useState<Set<number>>(new Set());
   const [joining, startJoin] = useTransition();
@@ -102,6 +103,11 @@ export function ManualMatchSearch({ readOnly = false }: { readOnly?: boolean }) 
             <span className={diff === 0 ? "font-semibold text-emerald-700" : "font-semibold text-amber-700"}>
               {diff === 0 ? "cierra justo" : `diferencia ${fmt.format(diff)}`}
             </span>
+            {pickedPays.length === 0 && pickedDocs.length > 0 && (
+              <span className="mt-0.5 block text-[11.5px] text-slate-500">
+                Tildá el pago en el cuadro 2, o si se pagó en mano y no está cargado, usá &laquo;Pagada en efectivo&raquo;.
+              </span>
+            )}
           </p>
           <div className="flex gap-2">
             <Button
@@ -114,6 +120,11 @@ export function ManualMatchSearch({ readOnly = false }: { readOnly?: boolean }) 
             >
               Vaciar
             </Button>
+            {pickedDocs.length > 0 && pickedPays.length === 0 && (
+              <Button size="sm" variant="secondary" disabled={readOnly} onClick={() => setPayingCash(true)}>
+                Pagada en efectivo
+              </Button>
+            )}
             <Button size="sm" disabled={readOnly || count < 2} onClick={() => setConfirming(true)}>
               Conciliar
             </Button>
@@ -123,6 +134,20 @@ export function ManualMatchSearch({ readOnly = false }: { readOnly?: boolean }) 
 
       {message && (
         <p className={`mt-2 text-[12px] ${message.error ? "text-red-600" : "text-emerald-700"}`}>{message.text}</p>
+      )}
+
+      {payingCash && (
+        <CashDialog
+          docs={pickedDocs}
+          total={docSum}
+          onCancel={() => setPayingCash(false)}
+          onDone={(text) => {
+            setMessage({ error: false, text });
+            setRemoved((prev) => new Set([...prev, ...docs.keys()]));
+            setDocs(new Map());
+            setPayingCash(false);
+          }}
+        />
       )}
 
       {confirming && (
@@ -377,5 +402,117 @@ function ResultRow({
       </span>
       <Amount value={row.amount} className="shrink-0" />
     </label>
+  );
+}
+
+/** Ventana de "Pagada en efectivo": fecha, quién pagó y una nota; registra el efectivo y lo cruza. */
+function CashDialog({
+  docs,
+  total,
+  onCancel,
+  onDone,
+}: {
+  docs: ManualSearchRow[];
+  total: number;
+  onCancel: () => void;
+  onDone: (message: string) => void;
+}) {
+  const latest = docs.reduce((max, d) => (d.date > max ? d.date : max), docs[0]?.date ?? new Date().toISOString());
+  const [date, setDate] = useState(latest.slice(0, 10));
+  const [payer, setPayer] = useState("");
+  const [note, setNote] = useState("");
+  const [payers, setPayers] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, startSave] = useTransition();
+
+  useEffect(() => {
+    void getCashPayersAction().then(setPayers);
+  }, []);
+
+  function save(e: FormEvent) {
+    e.preventDefault();
+    startSave(async () => {
+      const result = await markPaidInCashAction(
+        docs.map((d) => d.id),
+        { date, payer, note },
+      );
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onDone(`Listo: ${docs.length} comprobante(s) quedaron pagados en efectivo por ${payer.trim()} (${fmt.format(total)}).`);
+    });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cash-title"
+      onClick={() => !saving && onCancel()}
+    >
+      <form onSubmit={save} className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 id="cash-title" className="text-[16px] font-bold text-slate-900">
+          ¿Marcar {docs.length === 1 ? "esta factura" : `estas ${docs.length} facturas`} como pagada en efectivo?
+        </h3>
+        <p className="mt-1 text-[12.5px] text-slate-500">
+          Se registra un pago en efectivo por {fmt.format(total)} y se concilia con lo tildado.
+        </p>
+
+        <div className="mt-3">
+          <ConfirmList title="Comprobantes" rows={docs} total={total} />
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-[11.5px] font-medium text-slate-500">
+            Fecha del pago
+            <input
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none focus:border-indigo-400"
+            />
+          </label>
+          <label className="text-[11.5px] font-medium text-slate-500">
+            ¿Quién pagó?
+            <input
+              required
+              list="cash-payers"
+              value={payer}
+              onChange={(e) => setPayer(e.target.value)}
+              placeholder="Ej. Juan"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none focus:border-indigo-400"
+            />
+            <datalist id="cash-payers">
+              {payers.map((p) => (
+                <option key={p} value={p} />
+              ))}
+            </datalist>
+          </label>
+        </div>
+        <label className="mt-3 block text-[11.5px] font-medium text-slate-500">
+          Nota (opcional)
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Ej. lo pagó en la oficina"
+            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-[13px] text-slate-800 outline-none focus:border-indigo-400"
+          />
+        </label>
+
+        {error && <p className="mt-3 text-[12px] text-red-600">{error}</p>}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="secondary" size="sm" disabled={saving} onClick={onCancel}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="success" size="sm" disabled={saving || !payer.trim() || !date}>
+            {saving ? "Guardando…" : "Sí, pagada en efectivo"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

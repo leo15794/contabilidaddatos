@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { matches, matchItems, transactions } from "@/db/schema";
+import { importBatches, matches, matchItems, transactions } from "@/db/schema";
 import { requireAdmin, requireSession } from "@/lib/auth/session";
 import { searchForManualMatch, type ManualSearchRow } from "@/lib/queries";
 import { netAmount, parseAmountInput } from "@/lib/amounts";
+import { releasePendingPaymentCategory } from "@/lib/categories";
 
 const PAYMENT_SOURCES = new Set(["bank", "card", "cash", "ticket", "retention"]);
-import { releasePendingPaymentCategory } from "@/lib/categories";
 
 export async function resolveMatchAction(matchId: number, decision: "confirmed" | "rejected") {
   await requireAdmin();
@@ -112,3 +112,99 @@ export async function searchManualAction(input: {
   return searchForManualMatch({ text: input.text.slice(0, 100), amount, margin, side });
 }
 
+/**
+ * "Pagada en efectivo": para la factura que se pagó en mano y no quedó en la
+ * planilla de Gastos Socios. Crea el movimiento de efectivo por el total de
+ * las facturas tildadas (como una fila de esa planilla: "Efectivo · <proveedor>",
+ * cuenta "Efectivo · <quién pagó>") y lo cruza con ellas en el mismo paso.
+ */
+export async function markPaidInCashAction(
+  transactionIds: number[],
+  input: { date: string; payer: string; note: string },
+): Promise<ManualMatchResult> {
+  await requireAdmin();
+  const ids = [...new Set(transactionIds.filter((id) => Number.isInteger(id)))];
+  if (ids.length === 0) return { error: "Tildá al menos una factura." };
+  const payer = input.payer.trim().slice(0, 60);
+  if (!payer) return { error: "Poné quién pagó." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return { error: "La fecha no es válida." };
+  const date = new Date(`${input.date}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return { error: "La fecha no es válida." };
+  const note = input.note.trim().slice(0, 300);
+
+  const result = await db.transaction(async (tx): Promise<ManualMatchResult> => {
+    const docs = await tx.select().from(transactions).where(inArray(transactions.id, ids));
+    if (docs.length !== ids.length) {
+      return { error: "Alguna factura ya no existe. Actualizá la página e intentá de nuevo." };
+    }
+    if (docs.some((t) => t.source !== "afip_received" && t.source !== "afip_issued")) {
+      return { error: "Solo se pueden marcar como pagadas en efectivo facturas y notas de crédito." };
+    }
+    if (new Set(docs.map((t) => t.source)).size > 1) {
+      return { error: "No mezcles facturas de proveedores y de clientes en el mismo pago." };
+    }
+    const alreadyMatched = await tx
+      .select({ id: matchItems.transactionId })
+      .from(matchItems)
+      .innerJoin(matches, eq(matches.id, matchItems.matchId))
+      .where(and(inArray(matchItems.transactionId, ids), ne(matches.status, "rejected")));
+    if (alreadyMatched.length > 0) {
+      return { error: "Alguna de las facturas ya está conciliada o en revisión. Actualizá la página." };
+    }
+
+    const total = Math.round(docs.reduce((acc, t) => acc + netAmount(t.source, t.amount), 0) * 100) / 100;
+    if (total <= 0) return { error: "El total de lo tildado tiene que ser mayor a cero." };
+    // A un proveedor se le paga (egreso); un cliente nos paga (ingreso).
+    const amount = docs[0].source === "afip_received" ? -total : total;
+    const name = (docs[0].counterparty ?? "").replace(/^[\d.]+\s*-\s*/, "").trim() || "Sin identificar";
+
+    const [batch] = await tx
+      .insert(importBatches)
+      .values({ source: "cash", filename: "Pagada en efectivo (cargado a mano)", accountRef: `Efectivo · ${payer}`, rowCount: 1 })
+      .returning({ id: importBatches.id });
+    const [cash] = await tx
+      .insert(transactions)
+      .values({
+        batchId: batch.id,
+        source: "cash",
+        date,
+        description: `Efectivo · ${name}`,
+        amount: amount.toFixed(2),
+        accountRef: `Efectivo · ${payer}`,
+        counterparty: name,
+        raw: { quien: payer, origen: "Pagada en efectivo (cargado a mano)", nota: note || null, facturas: ids },
+      })
+      .returning({ id: transactions.id });
+
+    const [match] = await tx
+      .insert(matches)
+      .values({
+        strategy: "manual",
+        status: "manual",
+        confidence: 100,
+        amountDiff: "0",
+        note: `Pagada en efectivo por ${payer}${note ? ` — ${note}` : ""}.`,
+        resolvedAt: new Date(),
+      })
+      .returning({ id: matches.id });
+    await tx.insert(matchItems).values([...ids, cash.id].map((transactionId) => ({ matchId: match.id, transactionId })));
+    await tx.update(transactions).set({ category: null }).where(inArray(transactions.id, ids));
+    return {};
+  });
+
+  await releasePendingPaymentCategory((q) => db.execute(q));
+  revalidatePath("/review");
+  revalidatePath("/dashboard");
+  revalidatePath("/sin-conciliar/[fuente]", "page");
+  return result;
+}
+
+/** Quiénes pagaron en efectivo hasta ahora, para sugerirlos en "Pagada en efectivo". */
+export async function getCashPayersAction(): Promise<string[]> {
+  await requireSession();
+  const rows = await db
+    .selectDistinct({ ref: transactions.accountRef })
+    .from(transactions)
+    .where(eq(transactions.source, "cash"));
+  return [...new Set(rows.map((r) => (r.ref ?? "").replace(/^Efectivo\s*·\s*/, "").trim()).filter(Boolean))].sort();
+}
