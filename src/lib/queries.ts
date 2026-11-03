@@ -420,6 +420,76 @@ export async function getUnmatchedDetail(
   };
 }
 
+export type ManualSearchRow = {
+  id: number;
+  source: string;
+  date: string;
+  description: string;
+  counterparty: string | null;
+  accountRef: string | null;
+  amount: number;
+  category: string | null;
+  /** Está en una sugerencia sin revisar: hay que rechazarla antes de unirlo a mano. */
+  inSuggestion: boolean;
+};
+
+/**
+ * Buscador para unir a mano: facturas y pagos de TODAS las fuentes que no
+ * estén conciliados, por texto (descripción, proveedor, CUIT, cuenta) y/o por
+ * importe con un margen. A diferencia de "sin conciliar" también trae los
+ * categorizados ("Pendientes de pago", y transferencias mal marcadas como
+ * cuentas propias que en realidad le pagaron a un tercero, como las de
+ * Córdoba y Fontal) y los que están en una sugerencia pendiente.
+ */
+export async function searchForManualMatch({
+  text,
+  amount,
+  margin,
+  limit = 100,
+}: {
+  text?: string;
+  amount?: number;
+  /** Fracción del importe (0.01 = ±1 %); 0 = exacto (±1 peso). */
+  margin?: number;
+  limit?: number;
+}): Promise<ManualSearchRow[]> {
+  const conditions: SQL[] = [sql`not ${isResolved()}`];
+
+  for (const word of (text ?? "").trim().split(/\s+/).filter(Boolean)) {
+    const like = `%${word}%`;
+    conditions.push(
+      sql`(${transactions.description} ilike ${like} or coalesce(${transactions.counterparty}, '') ilike ${like} or coalesce(${transactions.accountRef}, '') ilike ${like})`,
+    );
+  }
+  if (amount !== undefined && amount > 0) {
+    const delta = Math.max(1, amount * (margin ?? 0));
+    conditions.push(sql`abs(${transactions.amount}) between ${amount - delta} and ${amount + delta}`);
+  }
+  if (conditions.length === 1) return [];
+
+  const rows = await db
+    .select({
+      id: transactions.id,
+      source: transactions.source,
+      date: transactions.date,
+      description: transactions.description,
+      counterparty: transactions.counterparty,
+      accountRef: transactions.accountRef,
+      amount: transactions.amount,
+      category: transactions.category,
+      inSuggestion: isPending().mapWith(Boolean),
+    })
+    .from(transactions)
+    .where(and(...conditions))
+    .orderBy(
+      amount !== undefined && amount > 0 ? sql`abs(abs(${transactions.amount}) - ${amount})` : desc(transactions.date),
+      desc(transactions.date),
+    )
+    .limit(limit);
+
+  return rows.map((r) => ({ ...r, date: r.date.toISOString(), amount: Number(r.amount) }));
+}
+
 /**
  * TODOS los movimientos sin match de una fuente (sin paginar), para agruparlos
  * por proveedor/comercio y exportarlos. Mismo criterio que `getUnmatchedDetail`.

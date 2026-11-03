@@ -4,6 +4,8 @@ import { getPendingMatches, getUnmatchedBreakdown } from "@/lib/queries";
 import { SOURCE_STYLES } from "@/components/ui";
 import { ReviewQueue } from "./review-queue";
 import { toSuggestionView, type SuggestionView } from "./suggestion-view";
+import { ManualMatchSearch } from "./manual-match-search";
+import { isReadOnly } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +21,7 @@ const FILTERS: { key: string; label: string; test: (s: SuggestionView) => boolea
 
 export default async function ReviewPage({ searchParams }: { searchParams: Promise<{ tipo?: string }> }) {
   const { tipo } = await searchParams;
-  const [pending, unmatchedBreakdown] = await Promise.all([getPendingMatches(), getUnmatchedBreakdown()]);
+  const [pending, unmatchedBreakdown, readOnly] = await Promise.all([getPendingMatches(), getUnmatchedBreakdown(), isReadOnly()]);
 
   const all = pending.map((p) => toSuggestionView(p.match, p.transactions));
   const filter = FILTERS.find((f) => f.key === tipo) ?? FILTERS[0];
@@ -74,6 +76,10 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
                 unirlos a mano.
               </p>
             </div>
+          </div>
+          <div className="mt-4">
+            <p className="mb-2 text-[13px] font-semibold text-slate-800">Buscar para unir a mano</p>
+            <ManualMatchSearch readOnly={readOnly} />
           </div>
           {unmatchedBreakdown.length === 0 ? (
             <p className="mt-4 rounded-2xl bg-white px-6 py-8 text-center text-[13px] text-slate-500 ring-1 ring-slate-200">
