@@ -6,7 +6,9 @@ import { db } from "@/db";
 import { matches, matchItems, transactions } from "@/db/schema";
 import { requireAdmin, requireSession } from "@/lib/auth/session";
 import { searchForManualMatch, type ManualSearchRow } from "@/lib/queries";
-import { parseAmountInput } from "@/lib/amounts";
+import { netAmount, parseAmountInput } from "@/lib/amounts";
+
+const PAYMENT_SOURCES = new Set(["bank", "card", "cash", "ticket", "retention"]);
 import { releasePendingPaymentCategory } from "@/lib/categories";
 
 export async function resolveMatchAction(matchId: number, decision: "confirmed" | "rejected") {
@@ -34,7 +36,10 @@ export async function createManualMatchAction(transactionIds: number[]): Promise
   if (ids.length < 2) return { error: "Elegí al menos dos movimientos distintos." };
 
   const result = await db.transaction(async (tx): Promise<ManualMatchResult> => {
-    const found = await tx.select({ id: transactions.id }).from(transactions).where(inArray(transactions.id, ids));
+    const found = await tx
+      .select({ id: transactions.id, source: transactions.source, amount: transactions.amount })
+      .from(transactions)
+      .where(inArray(transactions.id, ids));
     if (found.length !== ids.length) {
       return { error: "Algún movimiento ya no existe. Actualizá la página e intentá de nuevo." };
     }
@@ -50,9 +55,14 @@ export async function createManualMatchAction(transactionIds: number[]): Promise
       };
     }
 
+    // Lo pagado contra lo facturado (neto de notas de crédito), como en Revisar sugerencias.
+    const paid = found.filter((t) => PAYMENT_SOURCES.has(t.source)).reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0);
+    const billed = found.filter((t) => !PAYMENT_SOURCES.has(t.source)).reduce((acc, t) => acc + netAmount(t.source, t.amount), 0);
+    const amountDiff = Math.abs(paid - billed);
+
     const [row] = await tx
       .insert(matches)
-      .values({ strategy: "manual", status: "manual", confidence: 100, amountDiff: "0" })
+      .values({ strategy: "manual", status: "manual", confidence: 100, amountDiff: amountDiff.toFixed(2) })
       .returning({ id: matches.id });
 
     await tx.insert(matchItems).values(ids.map((transactionId) => ({ matchId: row.id, transactionId })));
@@ -89,10 +99,16 @@ export async function resolveManyAction(matchIds: number[], decision: "confirmed
 }
 
 /** Buscador de "Unir a mano": facturas y pagos sin conciliar por texto y/o importe. */
-export async function searchManualAction(input: { text: string; amount: string; margin: number }): Promise<ManualSearchRow[]> {
+export async function searchManualAction(input: {
+  text: string;
+  amount: string;
+  margin: number;
+  side?: "comprobantes" | "pagos";
+}): Promise<ManualSearchRow[]> {
   await requireSession();
   const amount = parseAmountInput(input.amount);
   const margin = [0, 0.01, 0.05, 0.1].includes(input.margin) ? input.margin : 0;
-  return searchForManualMatch({ text: input.text.slice(0, 100), amount, margin });
+  const side = input.side === "comprobantes" || input.side === "pagos" ? input.side : undefined;
+  return searchForManualMatch({ text: input.text.slice(0, 100), amount, margin, side });
 }
 

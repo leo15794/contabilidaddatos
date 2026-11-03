@@ -78,7 +78,7 @@ export default async function ReviewPage({ searchParams }: { searchParams: Promi
             </div>
           </div>
           <div className="mt-4">
-            <p className="mb-2 text-[13px] font-semibold text-slate-800">Buscar para unir a mano</p>
+            <p className="mb-2 text-[13px] font-semibold text-slate-800">Conciliar a mano: buscá las facturas, después los pagos, y confirmá</p>
             <ManualMatchSearch readOnly={readOnly} />
           </div>
           {unmatchedBreakdown.length === 0 ? (

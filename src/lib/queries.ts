@@ -442,10 +442,13 @@ export async function searchForManualMatch({
   text,
   amount,
   margin,
+  side,
   limit = 100,
 }: {
   text?: string;
   amount?: number;
+  /** Un solo lado del cruce: comprobantes de AFIP o movimientos de plata. */
+  side?: "comprobantes" | "pagos";
   /** Fracción del importe (0.01 = ±1 %); 0 = exacto (±1 peso). */
   margin?: number;
   limit?: number;
@@ -463,6 +466,10 @@ export async function searchForManualMatch({
     conditions.push(sql`abs(${transactions.amount}) between ${amount - delta} and ${amount + delta}`);
   }
   if (conditions.length === 1) return [];
+  if (side) {
+    const docs = sql`${transactions.source} in ('afip_issued', 'afip_received')`;
+    conditions.push(side === "comprobantes" ? docs : sql`not ${docs}`);
+  }
 
   const rows = await db
     .select({
