@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { importBatches, matches, matchItems, transactions } from "@/db/schema";
 import { requireAdmin, requireSession } from "@/lib/auth/session";
@@ -15,6 +15,9 @@ import { netAmount, parseAmountInput } from "@/lib/amounts";
 import { releasePendingPaymentCategory } from "@/lib/categories";
 
 const PAYMENT_SOURCES = new Set(["bank", "card", "cash", "ticket", "retention"]);
+// El cruce del resumen contra el débito no cuenta como pareja de sus consumos (ver queries.ts).
+const notStatementForCard = sql`not (${matches.strategy} = 'card_statement_1toN'
+  and ${matchItems.transactionId} in (select id from transactions where source = 'card'))`;
 const fmtMoney = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 
 export async function resolveMatchAction(matchId: number, decision: "confirmed" | "rejected") {
@@ -54,7 +57,7 @@ export async function createManualMatchAction(transactionIds: number[]): Promise
       .select({ id: matchItems.transactionId })
       .from(matchItems)
       .innerJoin(matches, eq(matches.id, matchItems.matchId))
-      .where(and(inArray(matchItems.transactionId, ids), ne(matches.status, "rejected")));
+      .where(and(inArray(matchItems.transactionId, ids), ne(matches.status, "rejected"), notStatementForCard));
     if (alreadyMatched.length > 0) {
       return {
         error: `${new Set(alreadyMatched.map((r) => r.id)).size} de los movimientos ya están conciliados o en revisión. Actualizá la página.`,
@@ -161,7 +164,7 @@ export async function markPaidInCashAction(
       .select({ id: matchItems.transactionId })
       .from(matchItems)
       .innerJoin(matches, eq(matches.id, matchItems.matchId))
-      .where(and(inArray(matchItems.transactionId, ids), ne(matches.status, "rejected")));
+      .where(and(inArray(matchItems.transactionId, ids), ne(matches.status, "rejected"), notStatementForCard));
     if (alreadyMatched.length > 0) {
       return { error: "Alguna de las facturas ya está conciliada o en revisión. Actualizá la página." };
     }

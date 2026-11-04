@@ -13,8 +13,23 @@ const NET_AMOUNT = sql`case ${transactions.source}::text when 'afip_issued' then
 // "Resuelto" = el movimiento está en algún match auto/confirmado/manual.
 // "Pendiente" = está en alguna sugerencia todavía sin revisar. Se calculan en
 // la base con EXISTS en vez de traer todos los matches a memoria.
+// El cruce del resumen de tarjeta contra el débito del banco solo resuelve el
+// débito: sus consumos siguen necesitando la factura (antes figuraban como
+// conciliados 42 consumos sin factura, por $3,37 M).
 const hasMatchWithStatus = (statuses: SQL) =>
-  sql`exists (select 1 from match_items mi inner join matches m on m.id = mi.match_id where mi.transaction_id = ${transactions.id} and m.status in ${statuses})`;
+  sql`exists (select 1 from match_items mi inner join matches m on m.id = mi.match_id where mi.transaction_id = ${transactions.id} and m.status in ${statuses}
+    and not (m.strategy = 'card_statement_1toN' and ${transactions.source} = 'card'))`;
+
+/** Ids de movimientos que ya tienen pareja (un cruce no rechazado que de verdad los resuelve). */
+const matchedIds = () =>
+  db
+    .select({ id: matchItems.transactionId })
+    .from(matchItems)
+    .innerJoin(matches, eq(matches.id, matchItems.matchId))
+    .where(
+      sql`${matches.status} != 'rejected' and not (${matches.strategy} = 'card_statement_1toN'
+        and ${matchItems.transactionId} in (select id from transactions where source = 'card'))`,
+    );
 const isResolved = () => hasMatchWithStatus(sql`('auto','confirmed','manual')`);
 const isPending = () => hasMatchWithStatus(sql`('pending')`);
 const isCategorized = () => sql`(${transactions.category} is not null and ${transactions.category} <> '')`;
@@ -311,18 +326,13 @@ export async function getAllResolvedMatches() {
 }
 
 export async function getUnmatchedTransactions() {
-  const matchedIds = db
-    .select({ id: matchItems.transactionId })
-    .from(matchItems)
-    .innerJoin(matches, eq(matches.id, matchItems.matchId))
-    .where(sql`${matches.status} != 'rejected'`);
 
   // Los categorizados a mano (ej. "Gastos operativos") no tienen contraparte
   // para cruzar — no tiene sentido que aparezcan acá como "sin match".
   return db
     .select()
     .from(transactions)
-    .where(and(sql`${transactions.id} not in (${matchedIds})`, isNull(transactions.category)))
+    .where(and(sql`${transactions.id} not in (${matchedIds()})`, isNull(transactions.category)))
     .orderBy(desc(transactions.date));
 }
 
@@ -333,11 +343,6 @@ export async function getUnmatchedTransactions() {
  * que cada uno lleve al detalle filtrado (ver getUnmatchedDetail).
  */
 export async function getUnmatchedBreakdown() {
-  const matchedIds = db
-    .select({ id: matchItems.transactionId })
-    .from(matchItems)
-    .innerJoin(matches, eq(matches.id, matchItems.matchId))
-    .where(sql`${matches.status} != 'rejected'`);
 
   const rows = await db
     .select({
@@ -346,7 +351,7 @@ export async function getUnmatchedBreakdown() {
       total: sql<number>`sum(${NET_AMOUNT})`,
     })
     .from(transactions)
-    .where(and(sql`${transactions.id} not in (${matchedIds})`, isNull(transactions.category)))
+    .where(and(sql`${transactions.id} not in (${matchedIds()})`, isNull(transactions.category)))
     .groupBy(transactions.source)
     .orderBy(sql`count(*) desc`);
 
@@ -367,16 +372,11 @@ export async function getUnmatchedDetail(
   source: UnmatchedSource,
   { page = 1, pageSize = 50 }: { page?: number; pageSize?: number } = {},
 ) {
-  const matchedIds = db
-    .select({ id: matchItems.transactionId })
-    .from(matchItems)
-    .innerJoin(matches, eq(matches.id, matchItems.matchId))
-    .where(sql`${matches.status} != 'rejected'`);
 
   const whereClause = and(
     eq(transactions.source, source),
     isNull(transactions.category),
-    sql`${transactions.id} not in (${matchedIds})`,
+    sql`${transactions.id} not in (${matchedIds()})`,
   );
 
   const monthly = await db
@@ -501,11 +501,6 @@ export async function searchForManualMatch({
  * `src/lib/unmatched-groups.ts`) en vez de duplicar esa lógica en SQL.
  */
 export async function getUnmatchedAll(source: UnmatchedSource) {
-  const matchedIds = db
-    .select({ id: matchItems.transactionId })
-    .from(matchItems)
-    .innerJoin(matches, eq(matches.id, matchItems.matchId))
-    .where(sql`${matches.status} != 'rejected'`);
 
   return db
     .select()
@@ -514,7 +509,7 @@ export async function getUnmatchedAll(source: UnmatchedSource) {
       and(
         eq(transactions.source, source),
         isNull(transactions.category),
-        sql`${transactions.id} not in (${matchedIds})`,
+        sql`${transactions.id} not in (${matchedIds()})`,
       ),
     )
     .orderBy(desc(transactions.date));
@@ -621,14 +616,17 @@ export async function getBatchDetail(batchId: number) {
   const txnIds = txns.map((t) => t.id);
   const matchRows = txnIds.length
     ? await db
-        .select({ transactionId: matchItems.transactionId, status: matches.status })
+        .select({ transactionId: matchItems.transactionId, status: matches.status, strategy: matches.strategy })
         .from(matchItems)
         .innerJoin(matches, eq(matches.id, matchItems.matchId))
         .where(inArray(matchItems.transactionId, txnIds))
     : [];
 
+  const cardIds = new Set(txns.filter((t) => t.source === "card").map((t) => t.id));
   const bestStatusByTxnId = new Map<number, string>();
   for (const r of matchRows) {
+    // El cruce del resumen contra el débito no concilia los consumos de la tarjeta.
+    if (r.strategy === "card_statement_1toN" && cardIds.has(r.transactionId)) continue;
     const prev = bestStatusByTxnId.get(r.transactionId);
     if (!prev || (STATUS_PRIORITY[r.status] ?? 0) > (STATUS_PRIORITY[prev] ?? 0)) {
       bestStatusByTxnId.set(r.transactionId, r.status);

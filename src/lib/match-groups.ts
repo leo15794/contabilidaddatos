@@ -46,12 +46,26 @@ export function matchDate(txns: Txn[]): Date {
   return txns.reduce((max, t) => (t.date > max ? t.date : max), new Date(0));
 }
 
+/**
+ * El pago del resumen de tarjeta (débito del banco contra el resumen) va en un
+ * grupo propio y vale lo que debitó el banco: sus consumos se concilian aparte,
+ * cada uno con su factura.
+ */
+export const STATEMENT_GROUP = { key: "resumen-tarjeta", label: "Pagos de resumen de tarjeta", cuit: null, kind: "otro" as const };
+
+export function isStatementPayment(match: Match): boolean {
+  return match.strategy === "card_statement_1toN";
+}
+
 /** Agrupa los cruces; los grupos van por plata (el más grande primero) y adentro, el más reciente primero. */
 export function groupMatches(rows: ResolvedMatch[]): MatchGroup[] {
   const groups = new Map<string, MatchGroup>();
   for (const row of rows) {
-    const g = matchGroupOf(row.transactions);
-    const total = matchTotal(row.transactions);
+    const statement = isStatementPayment(row.match);
+    const g = statement ? STATEMENT_GROUP : matchGroupOf(row.transactions);
+    const total = statement
+      ? row.transactions.filter((t) => t.source === "bank").reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0)
+      : matchTotal(row.transactions);
     const date = matchDate(row.transactions);
     const existing = groups.get(g.key);
     if (existing) {

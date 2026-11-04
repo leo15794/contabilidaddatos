@@ -18,7 +18,8 @@ export async function NavBar() {
       (select count(*) from transactions t
         where (t.category is null or t.category = '')
           and not exists (select 1 from match_items mi join matches m on m.id = mi.match_id
-                          where mi.transaction_id = t.id and m.status <> 'rejected'))::int as unmatched
+                          where mi.transaction_id = t.id and m.status <> 'rejected'
+                          and not (m.strategy = 'card_statement_1toN' and t.source = 'card')))::int as unmatched
   `);
 
   return (

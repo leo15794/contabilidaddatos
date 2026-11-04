@@ -17,11 +17,13 @@ export type Coverage = { month: string; bank: number; card: number; afip: number
 
 const OPEN_DOC = sql`
   not exists (select 1 from match_items mi join matches m on m.id = mi.match_id
-              where mi.transaction_id = t.id and m.status <> 'rejected')
+              where mi.transaction_id = t.id and m.status <> 'rejected'
+                and not (m.strategy = 'card_statement_1toN' and t.source = 'card'))
   and (t.category is null or t.category = '' or t.category = 'Pendientes de pago')`;
 
 const RESOLVED = sql`exists (select 1 from match_items mi join matches m on m.id = mi.match_id
-                            where mi.transaction_id = t.id and m.status in ('auto','confirmed','manual'))`;
+                            where mi.transaction_id = t.id and m.status in ('auto','confirmed','manual')
+                              and not (m.strategy = 'card_statement_1toN' and t.source = 'card'))`;
 
 const toNum = (v: unknown) => Number(v ?? 0);
 

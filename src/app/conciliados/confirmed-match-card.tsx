@@ -12,7 +12,7 @@ type Txn = typeof transactions.$inferSelect;
 
 const STRATEGY_LABELS: Record<string, string> = {
   exact_1to1: "Automático · exacto",
-  card_statement_1toN: "Automático · resumen de tarjeta",
+  card_statement_1toN: "Pago del resumen de tarjeta",
   credit_note: "Anulada por nota de crédito",
   cuit_group: "Grupo por cliente (CUIT)",
   payment_group: "Pago de varias facturas (mismo proveedor)",
@@ -29,6 +29,13 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
 export function ConfirmedMatchCard({ match, transactions }: { match: Match; transactions: Txn[] }) {
   const [pending, startTransition] = useTransition();
   const style = STATUS_STYLES[match.status] ?? { bg: "bg-slate-100", text: "text-slate-700", label: match.status };
+  // El pago del resumen: se muestra el débito del banco, no los consumos sueltos que quedaron
+  // adentro (cada consumo se concilia aparte con su factura).
+  const statement = match.strategy === "card_statement_1toN";
+  const shown = statement ? transactions.filter((t) => t.source !== "card") : transactions;
+  const note = statement
+    ? "Débito del banco que paga el resumen de la tarjeta. Los consumos se concilian aparte, cada uno con su factura."
+    : match.note;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -38,7 +45,7 @@ export function ConfirmedMatchCard({ match, transactions }: { match: Match; tran
             {style.label}
           </span>
           <span className="text-slate-500">{STRATEGY_LABELS[match.strategy] ?? match.strategy}</span>
-          {match.note && <span className="text-slate-400">· {match.note}</span>}
+          {note && <span className="text-slate-400">· {note}</span>}
         </span>
         <Button
           variant="ghost"
@@ -50,7 +57,7 @@ export function ConfirmedMatchCard({ match, transactions }: { match: Match; tran
         </Button>
       </div>
       <div className="space-y-1.5 rounded-lg bg-slate-50 p-2.5">
-        {transactions.map((t) => (
+        {shown.map((t) => (
           <div key={t.id} className="flex items-center justify-between gap-3 text-xs text-slate-700">
             <span className="flex min-w-0 items-center gap-2">
               <SourceBadge source={t.source} />
